@@ -154,7 +154,7 @@ function Dashboard({ user }) {
       const result = await fetchHistoryItem(id);
       if (result.success && result.data) {
         setSuiteData(result.data);
-        showToast(`Loaded test suite from database.`);
+        showToast(`Test Suite Loaded Successfully.`);
       } else {
         showToast("Failed to load file.");
       }

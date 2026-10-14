@@ -108,7 +108,7 @@ class BugController {
         bugId,
         azureBug: azureResult,
         publicLink,
-        message: azureResult ? `Bug #${azureResult.id} published to Azure DevOps!` : 'Bug saved to database.',
+        message: azureResult ? `Bug #${azureResult.id} published to Azure DevOps!` : 'Bug saved successfully.',
       });
     } catch (error) {
       return res.status(500).json({ success: false, error: error.message });
