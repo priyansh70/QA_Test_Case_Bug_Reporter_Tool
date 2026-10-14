@@ -3,11 +3,20 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const apiRoutes = require('./routes');
+const BugController = require('./controllers/bugController');
+const TestSuiteController = require('./controllers/testSuiteController');
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Public, unauthenticated bug report page shared via the public link generated on publish.
+app.get('/bugs/public/:id', BugController.renderPublicBug);
+
+// Public, unauthenticated test suite page shared via the public link generated on generate.
+app.get('/test-suites/public/:id', TestSuiteController.renderPublicSuite);
 
 // Register API Routes
 app.use('/api', apiRoutes);

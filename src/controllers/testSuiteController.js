@@ -3,10 +3,16 @@ const { getWorkItem } = require('../azure/azureClient');
 const { generateTestCases } = require('../ai/testCaseGenerator');
 const { formatAiError } = require('../ai/providers/errorFormatter');
 
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 class TestSuiteController {
   static async generate(req, res) {
     try {
-      const { workItemId, provider, model, project } = req.body;
+      const { workItemId, provider, model, project, editedFields } = req.body;
 
       if (!workItemId) {
         return res.status(400).json({ success: false, error: 'Please provide a valid Work Item ID.' });
@@ -17,6 +23,19 @@ class TestSuiteController {
         pat: req.user.azurePat,
         project: project || undefined,
       });
+
+      // Apply in-memory overrides from the Review & Edit flow without persisting them to Azure DevOps.
+      if (editedFields && typeof editedFields === 'object') {
+        if (editedFields.title && editedFields.title.trim()) {
+          targetWorkItem.title = editedFields.title.trim();
+        }
+        if (editedFields.description !== undefined) {
+          targetWorkItem.description = editedFields.description;
+        }
+        if (editedFields.acceptanceCriteria !== undefined) {
+          targetWorkItem.acceptanceCriteria = editedFields.acceptanceCriteria;
+        }
+      }
 
       // Validate that the user story has meaningful content before generating
       const hasDescription = targetWorkItem.description && targetWorkItem.description.trim().length > 0;
@@ -40,6 +59,7 @@ class TestSuiteController {
 
       const suiteId = `suite_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const fileName = `test-cases-${targetWorkItem.id}.json`;
+      const publicLink = `${req.protocol}://${req.get('host')}/test-suites/public/${suiteId}`;
 
       await TestSuiteModel.save({
         id: suiteId,
@@ -48,6 +68,7 @@ class TestSuiteController {
         featureName: parsedData.feature || targetWorkItem.title,
         dataJson: jsonString,
         fileName,
+        publicLink,
       });
 
       return res.json({
@@ -57,6 +78,7 @@ class TestSuiteController {
         data: parsedData,
         jsonString,
         savedFile: fileName,
+        publicLink,
       });
     } catch (error) {
       console.error('Generation Error:', error.message);
@@ -86,6 +108,7 @@ class TestSuiteController {
           featureName: row.feature_name,
           sectionsCount,
           totalTestCases,
+          publicLink: row.public_link || null,
           createdAt: row.created_at,
         };
       });
@@ -148,6 +171,65 @@ class TestSuiteController {
       return res.json({ success: true, scripts });
     } catch (error) {
       return res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // Public, unauthenticated read-only test suite page shared via the generated public link.
+  static async renderPublicSuite(req, res) {
+    try {
+      const { id } = req.params;
+      const row = await TestSuiteModel.findByIdPublic(id);
+
+      if (!row) {
+        return res.status(404).send('<h1>Test suite not found</h1>');
+      }
+
+      let data = {};
+      try {
+        data = JSON.parse(row.data_json);
+      } catch (e) {
+        data = {};
+      }
+      const sections = Array.isArray(data.sections) ? data.sections : [];
+
+      const sectionsHtml = sections.map((sec) => {
+        const cases = Array.isArray(sec.testCases) ? sec.testCases : [];
+        const casesHtml = cases.map((tc, idx) => {
+          const title = typeof tc === 'string' ? tc : (tc.title || tc.name || `Test Case ${idx + 1}`);
+          return `<li>${escapeHtml(title)}</li>`;
+        }).join('');
+        return `<section><h3>${escapeHtml(sec.name || 'Section')}</h3><ol>${casesHtml}</ol></section>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${escapeHtml(row.feature_name)} - Test Suite</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background:#0a0a0a; color:#e5e5e5; margin:0; padding:2rem; }
+  .card { max-width:760px; margin:0 auto; background:#141414; border:1px solid #2a2a2a; border-radius:16px; padding:2rem; }
+  h1 { font-size:1.4rem; margin-top:0; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; background:#262626; border:1px solid #3a3a3a; margin-right:6px; }
+  h3 { color:#34d399; font-size:0.9rem; margin-bottom:6px; }
+  ol { margin:0 0 1rem 0; padding-left:1.2rem; }
+  li { font-size:0.85rem; color:#d4d4d4; margin-bottom:4px; }
+  section { margin-bottom:1.25rem; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>${escapeHtml(row.feature_name)}</h1>
+    <div><span class="badge">Work Item #${escapeHtml(row.work_item_id)}</span><span class="badge">${sections.length} Sections</span></div>
+    ${sectionsHtml || '<p>No test cases found.</p>'}
+  </div>
+</body>
+</html>`;
+
+      return res.status(200).send(html);
+    } catch (error) {
+      return res.status(500).send('<h1>Failed to load test suite</h1>');
     }
   }
 }

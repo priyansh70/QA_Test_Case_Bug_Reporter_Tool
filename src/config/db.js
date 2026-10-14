@@ -70,10 +70,15 @@ async function initDatabase() {
             feature_name TEXT,
             data_json TEXT NOT NULL,
             file_name TEXT,
+            public_link TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id)
           )
         `);
+
+        try {
+          await dbRun(`ALTER TABLE test_suites ADD COLUMN public_link TEXT`);
+        } catch (_) {}
 
         await dbRun(`
           CREATE TABLE IF NOT EXISTS bugs (
@@ -87,10 +92,28 @@ async function initDatabase() {
             expected_result TEXT,
             actual_result TEXT,
             azure_bug_id TEXT,
+            assigned_to TEXT,
+            media_url TEXT,
+            azure_url TEXT,
+            public_link TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id)
           )
         `);
+
+        // Backward compatibility migrations for existing database files
+        try {
+          await dbRun(`ALTER TABLE bugs ADD COLUMN assigned_to TEXT`);
+        } catch (_) {}
+        try {
+          await dbRun(`ALTER TABLE bugs ADD COLUMN media_url TEXT`);
+        } catch (_) {}
+        try {
+          await dbRun(`ALTER TABLE bugs ADD COLUMN azure_url TEXT`);
+        } catch (_) {}
+        try {
+          await dbRun(`ALTER TABLE bugs ADD COLUMN public_link TEXT`);
+        } catch (_) {}
 
         console.log('⚡ [Database] Storage layer initialized successfully.');
         resolve();

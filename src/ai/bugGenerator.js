@@ -1,10 +1,45 @@
 const { getProvider } = require('./providers/factory');
 
 /**
+ * Offline / Testing QA Template Bug Generator (0 AI tokens / 0 API calls).
+ */
+function generateTemplateBugReport(bugTitle, storyContext = {}) {
+  const cleanTitle = (bugTitle || '').trim();
+  const storyTitle = (storyContext && storyContext.title) ? storyContext.title : '';
+  const contextNote = storyTitle ? ` in "${storyTitle}"` : '';
+
+  // Infer severity from keyword clues
+  let severity = '3 - Medium';
+  const lower = cleanTitle.toLowerCase();
+  if (lower.includes('crash') || lower.includes('fatal') || lower.includes('down') || lower.includes('freeze') || lower.includes('blocked') || lower.includes('security')) {
+    severity = '1 - Critical';
+  } else if (lower.includes('fail') || lower.includes('error') || lower.includes('cannot') || lower.includes('broken') || lower.includes('invalid') || lower.includes('not working')) {
+    severity = '2 - High';
+  } else if (lower.includes('typo') || lower.includes('align') || lower.includes('ui') || lower.includes('color') || lower.includes('spacing') || lower.includes('text')) {
+    severity = '4 - Low';
+  }
+
+  const scriptContext = (storyContext && storyContext.script) ? `\nRelated Test Case: ${storyContext.script}` : '';
+
+  return {
+    title: cleanTitle,
+    severity,
+    description: `Defect observed${contextNote}: ${cleanTitle}.${scriptContext}\nThis issue was identified during testing and prevents the feature from functioning as intended.`,
+    stepsToReproduce: `1. Open the application and navigate to the relevant page/module${storyTitle ? ` (${storyTitle})` : ''}.\n2. Trigger the action or flow: "${cleanTitle}".\n3. Observe the system response and behavior.`,
+    expectedResult: `The operation should succeed seamlessly without errors, unresponsiveness, or unexpected failures.`,
+    actualResult: `Defect observed: ${cleanTitle}. Expected standard behavior was not achieved.`,
+    isTemplate: true,
+  };
+}
+
+/**
  * AI Bug Generator - Converts single-line bug summaries into detailed Bug Reports.
  */
 async function generateBugReport(bugTitle, storyContext = {}, options = {}) {
-  const provider = getProvider(options);
+  // If template mode or skip AI is requested (for rate-limit saving and testing)
+  if (options.skipAi || options.isTemplate || options.mode === 'template') {
+    return generateTemplateBugReport(bugTitle, storyContext);
+  }
 
   const systemPrompt = `You are a Lead Senior QA Automation Engineer.
 Your objective is to take a single-line bug summary and generate a comprehensive, structured Bug Report strictly as a valid JSON object.
@@ -28,14 +63,34 @@ Description: "${storyContext.description || 'N/A'}"
 
 Generate the complete JSON bug report.`;
 
-  const rawResult = await provider.generateCompletion({
-    systemPrompt,
-    userPrompt,
-    model: options.model,
-    temperature: 0.2,
-  });
+  try {
+    const provider = getProvider(options);
+    const rawResult = await provider.generateCompletion({
+      systemPrompt,
+      userPrompt,
+      model: options.model,
+      temperature: 0.2,
+    });
 
-  return parseBugJson(rawResult, bugTitle);
+    return parseBugJson(rawResult, bugTitle);
+  } catch (error) {
+    const errMsg = (error?.message || '').toLowerCase();
+    const isRateLimit =
+      errMsg.includes('rate limit') ||
+      errMsg.includes('429') ||
+      errMsg.includes('quota') ||
+      errMsg.includes('too many requests') ||
+      errMsg.includes('resource_exhausted');
+
+    if (isRateLimit) {
+      console.warn('⚠️ [AI Bug Generator] AI rate limit encountered. Gracefully switching to offline QA template.');
+      const template = generateTemplateBugReport(bugTitle, storyContext);
+      template._rateLimitFallback = true;
+      return template;
+    }
+
+    throw error;
+  }
 }
 
 function parseBugJson(text, defaultTitle) {

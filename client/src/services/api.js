@@ -50,11 +50,20 @@ export async function fetchConfig() {
   return parseApiResponse(res);
 }
 
-export async function generateTestCases({ workItemId, isDemo, provider, model, project }) {
+export async function generateTestCases({ workItemId, isDemo, provider, model, project, editedFields }) {
   const res = await authFetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ workItemId, isDemo, provider, model, project }),
+    body: JSON.stringify({ workItemId, isDemo, provider, model, project, editedFields }),
+  });
+  return parseApiResponse(res);
+}
+
+export async function updateAzureWorkItem(id, { project, title, description, acceptanceCriteria }) {
+  const res = await authFetch(`/api/azure/work-item/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project, title, description, acceptanceCriteria }),
   });
   return parseApiResponse(res);
 }
@@ -83,17 +92,22 @@ export async function generateBugReport({ bugTitle, storyContext, provider, mode
   return parseApiResponse(res);
 }
 
-export async function publishBug({ bugReport, projectName, workItemId }) {
+export async function publishBug({ bugReport, projectName, workItemId, parentWorkItemId, iterationPath, assignedTo, mediaUrl, attachment }) {
   const res = await authFetch('/api/bugs/publish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bugReport, projectName, workItemId }),
+    body: JSON.stringify({ bugReport, projectName, workItemId, parentWorkItemId, iterationPath, assignedTo, mediaUrl, attachment }),
   });
   return parseApiResponse(res);
 }
 
 export async function fetchAzureProjects() {
   const res = await authFetch('/api/azure/projects');
+  return parseApiResponse(res);
+}
+
+export async function fetchAzureUsers(projectName) {
+  const res = await authFetch(`/api/azure/users?project=${encodeURIComponent(projectName)}`);
   return parseApiResponse(res);
 }
 

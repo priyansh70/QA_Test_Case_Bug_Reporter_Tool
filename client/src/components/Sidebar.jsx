@@ -26,6 +26,9 @@ export default function Sidebar({
   isOpen = true,
   onToggle,
   azureConfigured = false,
+  generationMode = 'direct',
+  setGenerationMode,
+  onReviewUserStory,
 }) {
   const { authFetch, user } = useAuth();
   const { isDark } = useTheme();
@@ -200,7 +203,43 @@ export default function Sidebar({
           </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onGenerate(false); }} className="space-y-4">
+        {/* Generation Mode Selector: Quick Generate vs Review & Edit First */}
+        <div className={`flex p-1 border rounded-xl ${isDark ? 'bg-black border-zinc-800' : 'bg-[var(--surface-hover)] border-[var(--border-default)]'}`}>
+          <button
+            type="button"
+            onClick={() => setGenerationMode && setGenerationMode('direct')}
+            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
+              generationMode === 'direct'
+                ? 'bg-emerald-500 text-black shadow-sm'
+                : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            Quick Generate
+          </button>
+          <button
+            type="button"
+            onClick={() => setGenerationMode && setGenerationMode('review')}
+            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
+              generationMode === 'review'
+                ? 'bg-emerald-500 text-black shadow-sm'
+                : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            Review & Edit First
+          </button>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (generationMode === 'review') {
+              onReviewUserStory && onReviewUserStory();
+            } else {
+              onGenerate();
+            }
+          }}
+          className="space-y-4"
+        >
           {inputMode === 'dropdown' ? (
             <div className="space-y-3">
               {/* Azure Project Dropdown */}
@@ -368,7 +407,7 @@ export default function Sidebar({
           {/* Action Buttons */}
           <button
             type="submit"
-            disabled={loading || (inputMode === 'manual' && !azureConfigured)}
+            disabled={loading || (inputMode === 'manual' && !azureConfigured) || (generationMode === 'review' && !workItemPreview)}
             className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
           >
             {loading ? (
@@ -376,7 +415,7 @@ export default function Sidebar({
             ) : (
               <>
                 <Zap className="w-4 h-4 fill-black" />
-                <span>Generate QA Test Suite</span>
+                <span>{generationMode === 'review' ? 'Review & Edit User Story' : 'Generate QA Test Suite'}</span>
               </>
             )}
           </button>

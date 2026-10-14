@@ -1,4 +1,4 @@
-const { getWorkItem, getProjects, getProjectWorkItems, getProjectIterations } = require('../azure/azureClient');
+const { getWorkItem, getProjects, getProjectWorkItems, getProjectIterations, getProjectUsers, updateWorkItem } = require('../azure/azureClient');
 
 class AzureController {
   static async getConfig(req, res) {
@@ -108,6 +108,46 @@ class AzureController {
       return res.json({ success: true, workItem });
     } catch (error) {
       return res.status(404).json({ success: false, error: error.message });
+    }
+  }
+
+  static async updateWorkItem(req, res) {
+    try {
+      const { id } = req.params;
+      const { project, title, description, acceptanceCriteria } = req.body;
+
+      const workItem = await updateWorkItem(
+        id,
+        { title, description, acceptanceCriteria },
+        {
+          org: req.user?.azureOrg,
+          pat: req.user?.azurePat,
+          project: project || undefined,
+        }
+      );
+
+      return res.json({ success: true, workItem });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  static async getUsers(req, res) {
+    try {
+      const { project } = req.query;
+      if (!project) {
+        return res.status(400).json({ success: false, error: 'Project parameter is required.' });
+      }
+
+      const users = await getProjectUsers(project, {
+        org: req.user?.azureOrg,
+        pat: req.user?.azurePat,
+      });
+
+      return res.json({ success: true, users });
+    } catch (error) {
+      console.error('Azure Project Users Fetch Error:', error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 }

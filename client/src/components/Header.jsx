@@ -1,9 +1,9 @@
 import React from 'react';
-import { Sparkles, Activity, History, LogOut, Bug, Settings, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Sparkles, Activity, History, LogOut, Bug, Settings, Sun, Moon, PanelLeftClose, PanelLeftOpen, ListChecks } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHistory, onOpenProfile, onOpenBugLogger }) {
+export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHistory, onOpenProfile, onOpenBugLogger, onOpenBugHistory }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const isConnected = config?.configured || (user?.azureOrg && user?.azurePat);
@@ -123,6 +123,19 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         >
           <History className="w-4 h-4 text-emerald-500" />
           <span>History</span>
+        </button>
+
+        {/* Bug History drawer button */}
+        <button
+          onClick={onOpenBugHistory}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 shadow-sm ${
+            isDark
+              ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
+              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
+          }`}
+        >
+          <ListChecks className="w-4 h-4 text-emerald-500" />
+          <span>Bug History</span>
         </button>
 
         {/* User profile avatar pill */}

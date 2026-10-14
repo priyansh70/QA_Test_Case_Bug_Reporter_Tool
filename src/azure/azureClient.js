@@ -192,6 +192,118 @@ async function getProjectWorkItems(projectName, customConfig = {}) {
 }
 
 /**
+ * Fetches list of users / team members for a given Azure DevOps project.
+ */
+async function getProjectUsers(projectName, customConfig = {}) {
+  let org, pat;
+  try {
+    const config = resolveConfig({ ...customConfig, project: projectName });
+    org = config.org;
+    pat = config.pat;
+  } catch (err) {
+    return [
+      { id: "demo-1", displayName: "QA Automation Lead", uniqueName: "qa.lead@example.com", imageUrl: "" },
+      { id: "demo-2", displayName: "Frontend Developer", uniqueName: "frontend.dev@example.com", imageUrl: "" },
+      { id: "demo-3", displayName: "Backend Developer", uniqueName: "backend.dev@example.com", imageUrl: "" },
+    ];
+  }
+
+  const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
+
+  try {
+    // 1. Fetch teams for the project
+    const teamsUrl = `https://dev.azure.com/${org}/_apis/projects/${encodeURIComponent(projectName)}/teams?api-version=7.0`;
+    const teamsRes = await axios.get(teamsUrl, {
+      headers: { Authorization: authHeader },
+    });
+
+    const teams = Array.isArray(teamsRes.data?.value) ? teamsRes.data.value : [];
+    const userMap = new Map();
+
+    // 2. Fetch members of each team in the project
+    await Promise.all(
+      teams.slice(0, 15).map(async (team) => {
+        try {
+          const membersUrl = `https://dev.azure.com/${org}/_apis/projects/${encodeURIComponent(projectName)}/teams/${team.id}/members?api-version=7.0`;
+          const memRes = await axios.get(membersUrl, {
+            headers: { Authorization: authHeader },
+          });
+          const members = Array.isArray(memRes.data?.value) ? memRes.data.value : [];
+          for (const m of members) {
+            const identity = m.identity || m;
+            if (identity && (identity.displayName || identity.uniqueName)) {
+              const key = identity.uniqueName || identity.id || identity.displayName;
+              if (!userMap.has(key)) {
+                userMap.set(key, {
+                  id: identity.id || key,
+                  displayName: identity.displayName || identity.uniqueName,
+                  uniqueName: identity.uniqueName || identity.displayName,
+                  imageUrl: identity.imageUrl || identity._links?.avatar?.href || "",
+                });
+              }
+            }
+          }
+        } catch (memErr) {
+          console.warn(`Failed to fetch members for team ${team.name}:`, memErr.message);
+        }
+      })
+    );
+
+    if (userMap.size > 0) {
+      return Array.from(userMap.values());
+    }
+  } catch (err) {
+    console.warn("Teams/members fetch error, trying Graph API fallback:", err.message);
+  }
+
+  // Fallback: Graph API
+  try {
+    const graphUrl = `https://vssps.dev.azure.com/${org}/_apis/graph/users?api-version=7.0-preview.1`;
+    const graphRes = await axios.get(graphUrl, {
+      headers: { Authorization: authHeader },
+    });
+    if (Array.isArray(graphRes.data?.value) && graphRes.data.value.length > 0) {
+      return graphRes.data.value.map((u) => ({
+        id: u.originId || u.descriptor,
+        displayName: u.displayName,
+        uniqueName: u.mailAddress || u.principalName || u.displayName,
+        imageUrl: u._links?.avatar?.href || "",
+      }));
+    }
+  } catch (graphErr) {
+    console.warn("Graph users API fallback failed:", graphErr.message);
+  }
+
+  return [];
+}
+
+/**
+ * Uploads a binary attachment (screenshot or evidence) to Azure DevOps.
+ */
+async function uploadAttachment(fileName, buffer, customConfig = {}) {
+  const { org, project, pat } = resolveConfig(customConfig);
+  if (!project) {
+    throw new Error("Project name is required to upload attachments in Azure DevOps.");
+  }
+  const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
+  const cleanFileName = encodeURIComponent(fileName || "screenshot.png");
+  const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/attachments?fileName=${cleanFileName}&api-version=7.0`;
+
+  try {
+    const response = await axios.post(url, buffer, {
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/octet-stream",
+      },
+    });
+    return response.data; // { id, url }
+  } catch (error) {
+    console.warn("Azure DevOps attachment upload error:", error.response?.data || error.message);
+    throw new Error(`Failed to upload attachment to Azure DevOps: ${error.message}`);
+  }
+}
+
+/**
  * Creates a new Bug Work Item directly in Azure DevOps.
  */
 async function createBugWorkItem(bugData, customConfig = {}) {
@@ -203,14 +315,28 @@ async function createBugWorkItem(bugData, customConfig = {}) {
   }
 
   const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
-  const url = `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/$Bug?api-version=7.0`;
+  const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/workitems/$Bug?api-version=7.0`;
+
+  // Build ReproSteps HTML with Description, Steps, Expected, Actual and Evidence
+  let mediaHtml = "";
+  if (bugData.mediaUrl && bugData.mediaUrl.trim()) {
+    const trimmedMedia = bugData.mediaUrl.trim();
+    const isImage = /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(trimmedMedia) || trimmedMedia.startsWith("data:image/");
+    if (isImage) {
+      mediaHtml += `<h3>Attached Screenshot</h3><p><img src="${trimmedMedia}" alt="Screenshot" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" /></p><p><a href="${trimmedMedia}" target="_blank">${trimmedMedia}</a></p>`;
+    } else {
+      mediaHtml += `<h3>Attached Video / Media URL</h3><p><a href="${trimmedMedia}" target="_blank">${trimmedMedia}</a></p>`;
+    }
+  }
+
+  const reproStepsHtml = `<div><h3>Description</h3><p>${bugData.description || ""}</p><h3>Steps to Reproduce</h3><pre>${bugData.stepsToReproduce || ""}</pre><h3>Expected Result</h3><p>${bugData.expectedResult || ""}</p><h3>Actual Result</h3><p>${bugData.actualResult || ""}</p>${mediaHtml}</div>`;
 
   const patchDocument = [
     { op: "add", path: "/fields/System.Title", value: bugData.title },
     {
       op: "add",
       path: "/fields/Microsoft.VSTS.TCM.ReproSteps",
-      value: `<div><h3>Description</h3><p>${bugData.description || ""}</p><h3>Steps to Reproduce</h3><pre>${bugData.stepsToReproduce || ""}</pre><h3>Expected Result</h3><p>${bugData.expectedResult || ""}</p><h3>Actual Result</h3><p>${bugData.actualResult || ""}</p></div>`,
+      value: reproStepsHtml,
     },
     {
       op: "add",
@@ -218,6 +344,15 @@ async function createBugWorkItem(bugData, customConfig = {}) {
       value: bugData.severity || "3 - Medium",
     },
   ];
+
+  // Assign To user
+  if (bugData.assignedTo && bugData.assignedTo.trim() && bugData.assignedTo !== "unassigned") {
+    patchDocument.push({
+      op: "add",
+      path: "/fields/System.AssignedTo",
+      value: bugData.assignedTo.trim(),
+    });
+  }
 
   if (bugData.iterationPath) {
     patchDocument.push({
@@ -239,6 +374,54 @@ async function createBugWorkItem(bugData, customConfig = {}) {
     });
   }
 
+  // Hyperlink relation for media URL if external link
+  if (bugData.mediaUrl && (bugData.mediaUrl.startsWith("http://") || bugData.mediaUrl.startsWith("https://"))) {
+    patchDocument.push({
+      op: "add",
+      path: "/relations/-",
+      value: {
+        rel: "Hyperlink",
+        url: bugData.mediaUrl.trim(),
+        attributes: {
+          comment: "Attached Screenshot / Video Evidence",
+        },
+      },
+    });
+  }
+
+  // Upload file attachment if provided
+  if (bugData.attachment && (bugData.attachment.data || bugData.attachment.buffer)) {
+    try {
+      let buffer = bugData.attachment.buffer;
+      if (!buffer && typeof bugData.attachment.data === "string") {
+        const base64Clean = bugData.attachment.data.replace(/^data:[^;]+;base64,/, "");
+        buffer = Buffer.from(base64Clean, "base64");
+      }
+      if (buffer) {
+        const attachRes = await uploadAttachment(
+          bugData.attachment.fileName || "screenshot.png",
+          buffer,
+          customConfig
+        );
+        if (attachRes?.url) {
+          patchDocument.push({
+            op: "add",
+            path: "/relations/-",
+            value: {
+              rel: "AttachedFile",
+              url: attachRes.url,
+              attributes: {
+                comment: "Screenshot / Media Evidence",
+              },
+            },
+          });
+        }
+      }
+    } catch (attErr) {
+      console.warn("Failed to attach file to Azure Bug work item:", attErr.message);
+    }
+  }
+
   try {
     const response = await axios.post(url, patchDocument, {
       headers: {
@@ -254,7 +437,67 @@ async function createBugWorkItem(bugData, customConfig = {}) {
         `https://dev.azure.com/${org}/${project}/_workitems/edit/${response.data.id}`,
     };
   } catch (error) {
-    throw new Error(`Failed to create Bug in Azure DevOps: ${error.message}`);
+    const details = error.response?.data?.message || error.message;
+    throw new Error(`Failed to create Bug in Azure DevOps: ${details}`);
+  }
+}
+
+/**
+ * Updates an existing Work Item's Title, Description and Acceptance Criteria in Azure DevOps.
+ */
+async function updateWorkItem(workItemId, fields = {}, customConfig = {}) {
+  const { org, project, pat } = resolveConfig(customConfig);
+  const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
+
+  const url = project
+    ? `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/${workItemId}?api-version=7.0`
+    : `https://dev.azure.com/${org}/_apis/wit/workitems/${workItemId}?api-version=7.0`;
+
+  const toHtml = (text) =>
+    typeof text === "string" && text.trim()
+      ? text.split("\n").map((line) => `<div>${line}</div>`).join("")
+      : "";
+
+  const patchDocument = [];
+  if (fields.title && fields.title.trim()) {
+    patchDocument.push({ op: "add", path: "/fields/System.Title", value: fields.title.trim() });
+  }
+  if (fields.description !== undefined) {
+    patchDocument.push({ op: "add", path: "/fields/System.Description", value: toHtml(fields.description) });
+  }
+  if (fields.acceptanceCriteria !== undefined) {
+    patchDocument.push({
+      op: "add",
+      path: "/fields/Microsoft.VSTS.Common.AcceptanceCriteria",
+      value: toHtml(fields.acceptanceCriteria),
+    });
+  }
+
+  if (patchDocument.length === 0) {
+    throw new Error("No fields provided to update.");
+  }
+
+  try {
+    const response = await axios.patch(url, patchDocument, {
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json-patch+json",
+      },
+    });
+
+    const f = response.data.fields || {};
+    return {
+      id: workItemId,
+      title: f["System.Title"] || fields.title || "",
+      description: cleanHtml(f["System.Description"] || ""),
+      acceptanceCriteria: cleanHtml(f["Microsoft.VSTS.Common.AcceptanceCriteria"] || ""),
+      url:
+        response.data._links?.html?.href ||
+        `https://dev.azure.com/${org}/_workitems/edit/${workItemId}`,
+    };
+  } catch (error) {
+    const details = error.response?.data?.message || error.message;
+    throw new Error(`Failed to update Work Item in Azure DevOps: ${details}`);
   }
 }
 
@@ -318,6 +561,9 @@ module.exports = {
   getProjects,
   getProjectWorkItems,
   getProjectIterations,
+  getProjectUsers,
+  uploadAttachment,
   createBugWorkItem,
+  updateWorkItem,
   cleanHtml,
 };

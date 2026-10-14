@@ -6,8 +6,10 @@ import Toolbar from "./components/Toolbar";
 import SectionCard from "./components/SectionCard";
 import JsonViewer from "./components/JsonViewer";
 import HistoryDrawer from "./components/HistoryDrawer";
+import BugHistoryDrawer from "./components/BugHistoryDrawer";
 import ProfileModal from "./components/ProfileModal";
 import BugReporterModal from "./components/BugReporterModal";
+import ReviewUserStoryModal from "./components/ReviewUserStoryModal";
 import Toast from "./components/Toast";
 import AuthView from "./components/AuthView";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -16,6 +18,7 @@ import {
   fetchConfig,
   generateTestCases,
   fetchHistoryItem,
+  updateAzureWorkItem,
 } from "./services/api";
 import { useToast } from "./hooks/useToast";
 import { FlaskConical, Play, Search } from "lucide-react";
@@ -45,6 +48,11 @@ function Dashboard({ user }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [bugLoggerOpen, setBugLoggerOpen] = useState(false);
+  const [bugHistoryOpen, setBugHistoryOpen] = useState(false);
+
+  // Generate flow: 'direct' (current, one-click) vs 'review' (edit user story before generating)
+  const [generationMode, setGenerationMode] = useState("direct");
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   // Reset state to guarantee clean slate if user changes
   useEffect(() => {
@@ -57,6 +65,9 @@ function Dashboard({ user }) {
     setHistoryOpen(false);
     setProfileOpen(false);
     setBugLoggerOpen(false);
+    setBugHistoryOpen(false);
+    setGenerationMode("direct");
+    setReviewModalOpen(false);
   }, [user?.id]);
 
   // Check config on mount when authenticated
@@ -77,8 +88,10 @@ function Dashboard({ user }) {
       });
   }, [user?.id]);
 
-  // Generate Test Cases
-  const handleGenerate = async () => {
+  // Generate Test Cases. `editedFields` (optional) carries Review & Edit overrides
+  // {title, description, acceptanceCriteria} that are used for generation only and
+  // are NOT persisted to Azure DevOps.
+  const handleGenerate = async (editedFields) => {
     const targetId = workItemId.trim();
     if (!targetId) {
       showToast("Please enter or select a valid Azure DevOps Work Item ID.");
@@ -100,11 +113,16 @@ function Dashboard({ user }) {
         provider,
         model,
         project: selectedProject,
+        editedFields: editedFields || undefined,
       });
 
       if (result.success && result.data) {
         setSuiteData(result.data);
-        showToast("QA Test Suite generated successfully!");
+        showToast(
+          result.publicLink
+            ? `QA Test Suite generated successfully! Public link: ${result.publicLink}`
+            : "QA Test Suite generated successfully!",
+        );
       } else {
         showToast(result.error || "Failed to generate test cases.");
       }
@@ -112,6 +130,24 @@ function Dashboard({ user }) {
       showToast(err.message || "Failed to generate test cases.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Opens the Review & Edit modal using the already-fetched work item preview.
+  const handleOpenReview = () => {
+    if (!workItemPreview || !workItemPreview.id) {
+      showToast("Please select or fetch a work item first.");
+      return;
+    }
+    setReviewModalOpen(true);
+  };
+
+  // Persists edited user story content back to Azure DevOps.
+  const handleSaveUserStory = async (id, fields) => {
+    try {
+      return await updateAzureWorkItem(id, { project: selectedProject, ...fields });
+    } catch (err) {
+      return { success: false, error: err.message || "Failed to update user story." };
     }
   };
 
@@ -230,6 +266,7 @@ function Dashboard({ user }) {
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
         onOpenBugLogger={() => setBugLoggerOpen(true)}
+        onOpenBugHistory={() => setBugHistoryOpen(true)}
       />
 
       {/* Onboarding Azure PAT Setup Banner */}
@@ -289,6 +326,9 @@ function Dashboard({ user }) {
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen((prev) => !prev)}
           azureConfigured={azureConfigured}
+          generationMode={generationMode}
+          setGenerationMode={setGenerationMode}
+          onReviewUserStory={handleOpenReview}
         />
 
         {/* Workspace Viewer Container */}
@@ -393,6 +433,7 @@ function Dashboard({ user }) {
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
         onLoadFile={handleLoadHistoryFile}
+        onShowToast={showToast}
       />
 
       {/* Profile & Azure PAT Settings Modal */}
@@ -409,6 +450,25 @@ function Dashboard({ user }) {
         selectedProject={selectedProject}
         selectedStory={selectedStory}
         onShowToast={showToast}
+      />
+
+      {/* Bug History Slide-over Drawer */}
+      <BugHistoryDrawer
+        isOpen={bugHistoryOpen}
+        onClose={() => setBugHistoryOpen(false)}
+        onShowToast={showToast}
+      />
+
+      {/* Review & Edit User Story Modal (2nd generation flow) */}
+      <ReviewUserStoryModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        workItem={workItemPreview}
+        projectName={selectedProject}
+        onSaveUserStory={handleSaveUserStory}
+        onGenerateTestCases={handleGenerate}
+        onShowToast={showToast}
+        isGenerating={loading}
       />
 
       {/* Toast Notification */}
