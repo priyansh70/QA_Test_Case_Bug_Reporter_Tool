@@ -391,9 +391,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
 
       if (data.success) {
         const baseMsg = data.message || 'Bug successfully created in Azure DevOps!';
-        const msg = data.publicLink ? `${baseMsg} Public link: ${data.publicLink}` : baseMsg;
+        // const msg = data.publicLink ? `${baseMsg} Public link: ${data.publicLink}` : baseMsg;
         if (onShowToast) {
-          onShowToast(msg);
+          onShowToast(baseMsg);
         }
         resetForm();
         onClose();
@@ -442,24 +442,21 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md ${
-          isDark ? 'bg-black/80' : 'bg-slate-900/40'
-        }`}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md ${isDark ? 'bg-black/80' : 'bg-slate-900/40'
+          }`}>
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.18 }}
-            className={`w-full max-w-4xl border rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans max-h-[92vh] ${
-              isDark
-                ? 'bg-zinc-950 border-zinc-800 text-zinc-100 shadow-black/90'
-                : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-[var(--shadow-lg)]'
-            }`}
+            className={`w-full max-w-4xl border rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans max-h-[92vh] ${isDark
+              ? 'bg-zinc-950 border-zinc-800 text-zinc-100 shadow-black/90'
+              : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-[var(--shadow-lg)]'
+              }`}
           >
             {/* Modal Header */}
-            <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${
-              isDark ? 'border-zinc-800/80 bg-zinc-950/70' : 'border-[var(--border-subtle)] bg-[var(--surface-hover)]'
-            }`}>
+            <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-zinc-800/80 bg-zinc-950/70' : 'border-[var(--border-subtle)] bg-[var(--surface-hover)]'
+              }`}>
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-500 rounded-xl border border-red-500/30 shadow-inner">
                   <Bug className="w-5 h-5" />
@@ -469,11 +466,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                     <h3 className={`font-bold text-base sm:text-lg font-outfit ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>
                       {isReviewMode ? 'Review & Edit Bug Before Publishing' : 'AI Bug Logger & Azure DevOps Publisher'}
                     </h3>
-                    <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${
-                      isReviewMode
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                    }`}>
+                    <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${isReviewMode
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      }`}>
                       {isReviewMode ? 'Editable Review Mode' : 'Step 1: Setup'}
                     </span>
                   </div>
@@ -489,11 +485,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                 {isReviewMode && (
                   <button
                     onClick={() => setIsReviewMode(false)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all ${
-                      isDark
-                        ? 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                        : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
-                    }`}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all ${isDark
+                      ? 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+                      : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
+                      }`}
                     title="Return to initial configuration"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -505,9 +500,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                     resetForm();
                     onClose();
                   }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  }`}
+                  className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -517,11 +511,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
             {/* Modal Body */}
             <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
               {error && (
-                <div className={`p-3.5 border rounded-xl text-xs flex items-center gap-2.5 animate-fadeIn ${
-                  isDark
-                    ? 'bg-red-950/50 border-red-500/40 text-red-200'
-                    : 'bg-red-50 border-red-200 text-red-700'
-                }`}>
+                <div className={`p-3.5 border rounded-xl text-xs flex items-center gap-2.5 animate-fadeIn ${isDark
+                  ? 'bg-red-950/50 border-red-500/40 text-red-200'
+                  : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
                   <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -533,9 +526,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
               {!isReviewMode ? (
                 <>
                   {/* Controls Grid: Project, Story, Sprint, Assignee */}
-                  <div className={`p-4 border rounded-2xl space-y-4 ${
-                    isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
-                  }`}>
+                  <div className={`p-4 border rounded-2xl space-y-4 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
+                    }`}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {/* 1. Azure Project Select */}
                       <div>
@@ -547,9 +539,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           <button
                             type="button"
                             onClick={loadProjects}
-                            className={`text-[10px] flex items-center gap-1 ${
-                              isDark ? 'text-zinc-500 hover:text-emerald-400' : 'text-[var(--text-disabled)] hover:text-emerald-600'
-                            }`}
+                            className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-zinc-500 hover:text-emerald-400' : 'text-[var(--text-disabled)] hover:text-emerald-600'
+                              }`}
                           >
                             <RefreshCw className="w-3 h-3" />
                             Refresh
@@ -590,9 +581,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               : stories.length === 0
                                 ? [{ value: '', label: 'No stories in project' }]
                                 : stories.map((s) => ({
-                                    value: String(s.id),
-                                    label: `#${s.id} - ${s.title}`,
-                                  }))
+                                  value: String(s.id),
+                                  label: `#${s.id} - ${s.title}`,
+                                }))
                           }
                         />
                       </div>
@@ -614,9 +605,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               : iterations.length === 0
                                 ? [{ value: '', label: 'Default Project Iteration' }]
                                 : iterations.map((it) => ({
-                                    value: it.path,
-                                    label: `⚡ ${it.name} ${it.isCurrent ? '(Current)' : ''}`,
-                                  }))
+                                  value: it.path,
+                                  label: `⚡ ${it.name} ${it.isCurrent ? '(Current)' : ''}`,
+                                }))
                           }
                         />
                       </div>
@@ -655,17 +646,15 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                         </span>
 
                         {/* Mode Switcher Tabs */}
-                        <div className={`p-0.5 rounded-lg flex items-center gap-1 text-[11px] font-medium border ${
-                          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'
-                        }`}>
+                        <div className={`p-0.5 rounded-lg flex items-center gap-1 text-[11px] font-medium border ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'
+                          }`}>
                           <button
                             type="button"
                             onClick={() => setMediaMode('upload')}
-                            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                              mediaMode === 'upload'
-                                ? 'bg-emerald-500 text-black font-bold shadow-sm'
-                                : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${mediaMode === 'upload'
+                              ? 'bg-emerald-500 text-black font-bold shadow-sm'
+                              : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
+                              }`}
                           >
                             <ImageIcon className="w-3 h-3" />
                             <span>Attach Screenshot</span>
@@ -673,11 +662,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           <button
                             type="button"
                             onClick={() => setMediaMode('url')}
-                            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
-                              mediaMode === 'url'
-                                ? 'bg-emerald-500 text-black font-bold shadow-sm'
-                                : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${mediaMode === 'url'
+                              ? 'bg-emerald-500 text-black font-bold shadow-sm'
+                              : isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black'
+                              }`}
                           >
                             <Video className="w-3 h-3" />
                             <span>Video / Media URL</span>
@@ -701,11 +689,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               onClick={() => fileInputRef.current?.click()}
                               onDragOver={(e) => e.preventDefault()}
                               onDrop={handleDrop}
-                              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
-                                isDark
-                                  ? 'border-zinc-800 hover:border-emerald-500/60 bg-black/40 hover:bg-zinc-900/50'
-                                  : 'border-zinc-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/20'
-                              }`}
+                              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${isDark
+                                ? 'border-zinc-800 hover:border-emerald-500/60 bg-black/40 hover:bg-zinc-900/50'
+                                : 'border-zinc-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/20'
+                                }`}
                             >
                               <div className="p-2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                 <UploadCloud className="w-5 h-5" />
@@ -719,9 +706,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               </p>
                             </div>
                           ) : (
-                            <div className={`p-3 border rounded-xl flex items-center justify-between gap-3 ${
-                              isDark ? 'bg-black/60 border-zinc-800' : 'bg-white border-zinc-200'
-                            }`}>
+                            <div className={`p-3 border rounded-xl flex items-center justify-between gap-3 ${isDark ? 'bg-black/60 border-zinc-800' : 'bg-white border-zinc-200'
+                              }`}>
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-zinc-700 shrink-0 bg-zinc-900 flex items-center justify-center">
                                   <img
@@ -745,9 +731,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               <button
                                 type="button"
                                 onClick={() => setAttachedFile(null)}
-                                className={`p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors ${
-                                  isDark ? 'hover:bg-red-950/40' : 'hover:bg-red-50'
-                                }`}
+                                className={`p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors ${isDark ? 'hover:bg-red-950/40' : 'hover:bg-red-50'
+                                  }`}
                                 title="Remove screenshot"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -764,11 +749,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                               value={mediaUrl}
                               onChange={(e) => setMediaUrl(e.target.value)}
                               placeholder="e.g. https://www.loom.com/share/... or https://youtu.be/... or image URL"
-                              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                                isDark
-                                  ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-600'
-                                  : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
-                              }`}
+                              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                                ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-600'
+                                : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
+                                }`}
                             />
                             <LinkIcon className={`w-3.5 h-3.5 absolute left-3 top-3.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
                           </div>
@@ -792,11 +776,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                         value={bugTitle}
                         onChange={(e) => setBugTitle(e.target.value)}
                         placeholder="e.g. Payment checkout button freezes when clicked twice on mobile layout"
-                        className={`w-full px-4 py-3 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                          isDark
-                            ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-500'
-                            : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
-                        }`}
+                        className={`w-full px-4 py-3 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                          ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-500'
+                          : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
+                          }`}
                       />
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -819,11 +802,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           type="button"
                           onClick={handleManualDraft}
                           disabled={loading || !bugTitle.trim()}
-                          className={`px-4 py-3 border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-40 cursor-pointer ${
-                            isDark
-                              ? 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:bg-zinc-800'
-                              : 'bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-100'
-                          }`}
+                          className={`px-4 py-3 border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-40 cursor-pointer ${isDark
+                            ? 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:bg-zinc-800'
+                            : 'bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+                            }`}
                           title="Skip AI generation and enter review mode directly"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-emerald-500" />
@@ -837,13 +819,11 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                 /* ======================================================== */
                 /* REVIEW & EDIT MODE (ALL FIELDS IN FULL EDIT MODE!) */
                 /* ======================================================== */
-                <div className={`p-5 border rounded-2xl space-y-5 animate-fadeIn ${
-                  isDark ? 'bg-zinc-900/70 border-zinc-800' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
-                }`}>
-                  {/* Review Mode Banner */}
-                  <div className={`flex flex-wrap items-center justify-between gap-2.5 pb-4 border-b ${
-                    isDark ? 'border-zinc-800' : 'border-[var(--border-subtle)]'
+                <div className={`p-5 border rounded-2xl space-y-5 animate-fadeIn ${isDark ? 'bg-zinc-900/70 border-zinc-800' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
                   }`}>
+                  {/* Review Mode Banner */}
+                  <div className={`flex flex-wrap items-center justify-between gap-2.5 pb-4 border-b ${isDark ? 'border-zinc-800' : 'border-[var(--border-subtle)]'
+                    }`}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-bold">
                         <Edit3 className="w-3.5 h-3.5" />
@@ -854,9 +834,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           Story: #{parentStory.id}
                         </span>
                       )}
-                      <span className={`px-2 py-1 text-[11px] font-semibold rounded-md border ${
-                        isDark ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-white text-zinc-700 border-zinc-200'
-                      }`}>
+                      <span className={`px-2 py-1 text-[11px] font-semibold rounded-md border ${isDark ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-white text-zinc-700 border-zinc-200'
+                        }`}>
                         Project: {currentProject}
                       </span>
                     </div>
@@ -868,9 +847,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
 
                   {/* Form Field 1: Bug Title */}
                   <div className="space-y-1.5">
-                    <label className={`block text-xs font-bold flex items-center justify-between ${
-                      isDark ? 'text-zinc-200' : 'text-zinc-800'
-                    }`}>
+                    <label className={`block text-xs font-bold flex items-center justify-between ${isDark ? 'text-zinc-200' : 'text-zinc-800'
+                      }`}>
                       <span>1. Defect Title / Summary:</span>
                       <span className="text-[10px] text-emerald-400 font-normal">Editable</span>
                     </label>
@@ -879,11 +857,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                       required
                       value={reviewTitle}
                       onChange={(e) => setReviewTitle(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                        isDark
-                          ? 'bg-black border-zinc-800 text-white'
-                          : 'bg-white border-[var(--border-default)] text-black'
-                      }`}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                        ? 'bg-black border-zinc-800 text-white'
+                        : 'bg-white border-[var(--border-default)] text-black'
+                        }`}
                     />
                   </div>
 
@@ -897,11 +874,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                       <select
                         value={reviewSeverity}
                         onChange={(e) => setReviewSeverity(e.target.value)}
-                        className={`w-full px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                          isDark
-                            ? 'bg-black border-zinc-800 text-zinc-100'
-                            : 'bg-white border-[var(--border-default)] text-black'
-                        }`}
+                        className={`w-full px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                          ? 'bg-black border-zinc-800 text-zinc-100'
+                          : 'bg-white border-[var(--border-default)] text-black'
+                          }`}
                       >
                         <option value="1 - Critical">🔴 1 - Critical</option>
                         <option value="2 - High">🟠 2 - High</option>
@@ -940,9 +916,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           iterations.length === 0
                             ? [{ value: '', label: 'Default Project Sprint' }]
                             : iterations.map((it) => ({
-                                value: it.path,
-                                label: `${it.name} ${it.isCurrent ? '(Current)' : ''}`,
-                              }))
+                              value: it.path,
+                              label: `${it.name} ${it.isCurrent ? '(Current)' : ''}`,
+                            }))
                         }
                       />
                     </div>
@@ -950,9 +926,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
 
                   {/* Form Field 3: Description */}
                   <div className="space-y-1.5">
-                    <label className={`block text-xs font-bold flex items-center justify-between ${
-                      isDark ? 'text-zinc-200' : 'text-zinc-800'
-                    }`}>
+                    <label className={`block text-xs font-bold flex items-center justify-between ${isDark ? 'text-zinc-200' : 'text-zinc-800'
+                      }`}>
                       <span>5. Defect Description & Context:</span>
                       <span className="text-[10px] text-zinc-400 font-normal">Markdown / Plain Text</span>
                     </label>
@@ -960,19 +935,17 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                       rows={3}
                       value={reviewDescription}
                       onChange={(e) => setReviewDescription(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                        isDark
-                          ? 'bg-black border-zinc-800 text-zinc-200'
-                          : 'bg-white border-[var(--border-default)] text-black'
-                      }`}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                        ? 'bg-black border-zinc-800 text-zinc-200'
+                        : 'bg-white border-[var(--border-default)] text-black'
+                        }`}
                     />
                   </div>
 
                   {/* Form Field 4: Steps to Reproduce */}
                   <div className="space-y-1.5">
-                    <label className={`block text-xs font-bold flex items-center justify-between ${
-                      isDark ? 'text-zinc-200' : 'text-zinc-800'
-                    }`}>
+                    <label className={`block text-xs font-bold flex items-center justify-between ${isDark ? 'text-zinc-200' : 'text-zinc-800'
+                      }`}>
                       <span>6. Steps to Reproduce:</span>
                       <span className="text-[10px] text-zinc-400 font-mono">Numbered Steps</span>
                     </label>
@@ -980,11 +953,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                       rows={4}
                       value={reviewSteps}
                       onChange={(e) => setReviewSteps(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 border rounded-xl font-mono text-[11px] leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                        isDark
-                          ? 'bg-black border-zinc-800 text-emerald-300'
-                          : 'bg-white border-[var(--border-default)] text-emerald-800'
-                      }`}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl font-mono text-[11px] leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                        ? 'bg-black border-zinc-800 text-emerald-300'
+                        : 'bg-white border-[var(--border-default)] text-emerald-800'
+                        }`}
                     />
                   </div>
 
@@ -998,11 +970,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                         rows={3}
                         value={reviewExpected}
                         onChange={(e) => setReviewExpected(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                          isDark
-                            ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
-                            : 'bg-emerald-50/50 border-emerald-300 text-emerald-900'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                          : 'bg-emerald-50/50 border-emerald-300 text-emerald-900'
+                          }`}
                       />
                     </div>
 
@@ -1014,19 +985,17 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                         rows={3}
                         value={reviewActual}
                         onChange={(e) => setReviewActual(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 ${
-                          isDark
-                            ? 'bg-red-950/20 border-red-500/30 text-red-200'
-                            : 'bg-red-50/50 border-red-300 text-red-900'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-xl text-xs leading-relaxed focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 ${isDark
+                          ? 'bg-red-950/20 border-red-500/30 text-red-200'
+                          : 'bg-red-50/50 border-red-300 text-red-900'
+                          }`}
                       />
                     </div>
                   </div>
 
                   {/* Form Field 6: Screenshot & Video Evidence in Review */}
-                  <div className={`p-3.5 border rounded-xl space-y-2.5 ${
-                    isDark ? 'bg-black/60 border-zinc-800' : 'bg-white border-zinc-200'
-                  }`}>
+                  <div className={`p-3.5 border rounded-xl space-y-2.5 ${isDark ? 'bg-black/60 border-zinc-800' : 'bg-white border-zinc-200'
+                    }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold flex items-center gap-1.5 text-emerald-500">
                         <Paperclip className="w-3.5 h-3.5" />
@@ -1039,9 +1008,8 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                       {/* Attached Screenshot Review */}
                       <div>
                         {reviewAttachedFile ? (
-                          <div className={`p-2.5 border rounded-lg flex items-center justify-between gap-2 ${
-                            isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
-                          }`}>
+                          <div className={`p-2.5 border rounded-lg flex items-center justify-between gap-2 ${isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+                            }`}>
                             <div className="flex items-center gap-2.5 min-w-0">
                               <img
                                 src={reviewAttachedFile.dataUrl}
@@ -1073,11 +1041,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                             />
                             <label
                               htmlFor="reviewFileInput"
-                              className={`p-2.5 border border-dashed rounded-lg flex items-center justify-center gap-2 text-xs cursor-pointer transition-colors ${
-                                isDark
-                                  ? 'border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40 bg-zinc-950/40'
-                                  : 'border-zinc-300 text-zinc-600 hover:text-emerald-600 hover:border-emerald-400 bg-white'
-                              }`}
+                              className={`p-2.5 border border-dashed rounded-lg flex items-center justify-center gap-2 text-xs cursor-pointer transition-colors ${isDark
+                                ? 'border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40 bg-zinc-950/40'
+                                : 'border-zinc-300 text-zinc-600 hover:text-emerald-600 hover:border-emerald-400 bg-white'
+                                }`}
                             >
                               <UploadCloud className="w-4 h-4 text-emerald-500" />
                               <span>Attach / Replace Screenshot</span>
@@ -1093,11 +1060,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                           value={reviewMediaUrl}
                           onChange={(e) => setReviewMediaUrl(e.target.value)}
                           placeholder="Video URL (Loom, YouTube, CDN)..."
-                          className={`w-full pl-8 pr-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-emerald-500 ${
-                            isDark
-                              ? 'bg-zinc-950 border-zinc-800 text-zinc-100 placeholder-zinc-600'
-                              : 'bg-white border-zinc-200 text-black placeholder-zinc-400'
-                          }`}
+                          className={`w-full pl-8 pr-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-emerald-500 ${isDark
+                            ? 'bg-zinc-950 border-zinc-800 text-zinc-100 placeholder-zinc-600'
+                            : 'bg-white border-zinc-200 text-black placeholder-zinc-400'
+                            }`}
                         />
                         <LinkIcon className={`w-3.5 h-3.5 absolute left-2.5 top-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
                       </div>
@@ -1105,17 +1071,15 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                   </div>
 
                   {/* Review Actions Footer */}
-                  <div className={`pt-4 border-t flex flex-wrap items-center justify-between gap-3 ${
-                    isDark ? 'border-zinc-800' : 'border-[var(--border-subtle)]'
-                  }`}>
+                  <div className={`pt-4 border-t flex flex-wrap items-center justify-between gap-3 ${isDark ? 'border-zinc-800' : 'border-[var(--border-subtle)]'
+                    }`}>
                     <button
                       type="button"
                       onClick={() => setIsReviewMode(false)}
-                      className={`px-4 py-2.5 border rounded-xl text-xs font-semibold transition-all ${
-                        isDark
-                          ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
-                          : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
-                      }`}
+                      className={`px-4 py-2.5 border rounded-xl text-xs font-semibold transition-all ${isDark
+                        ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+                        }`}
                     >
                       <span>← Back to Setup</span>
                     </button>

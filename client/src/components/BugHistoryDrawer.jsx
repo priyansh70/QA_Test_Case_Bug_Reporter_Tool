@@ -45,9 +45,8 @@ export default function BugHistoryDrawer({ isOpen, onClose, onShowToast }) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 flex justify-end backdrop-blur-sm font-sans ${
-          isDark ? 'bg-neutral-950/80' : 'bg-slate-900/30'
-        }`}>
+        <div className={`fixed inset-0 z-50 flex justify-end backdrop-blur-sm font-sans ${isDark ? 'bg-neutral-950/80' : 'bg-slate-900/30'
+          }`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -61,13 +60,11 @@ export default function BugHistoryDrawer({ isOpen, onClose, onShowToast }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`relative w-full max-w-md border-l shadow-2xl h-full flex flex-col z-10 font-sans ${
-              isDark ? 'bg-zinc-950 border-zinc-800 shadow-black/90' : 'bg-[var(--surface)] border-[var(--border-default)] shadow-[var(--shadow-lg)]'
-            }`}
+            className={`relative w-full max-w-md border-l shadow-2xl h-full flex flex-col z-10 font-sans ${isDark ? 'bg-zinc-950 border-zinc-800 shadow-black/90' : 'bg-[var(--surface)] border-[var(--border-default)] shadow-[var(--shadow-lg)]'
+              }`}
           >
-            <div className={`flex items-center justify-between px-6 py-5 border-b ${
-              isDark ? 'border-zinc-800 bg-black' : 'border-[var(--border-subtle)] bg-[var(--surface-hover)]'
-            }`}>
+            <div className={`flex items-center justify-between px-6 py-5 border-b ${isDark ? 'border-zinc-800 bg-black' : 'border-[var(--border-subtle)] bg-[var(--surface-hover)]'
+              }`}>
               <div className="flex items-center gap-2.5">
                 <Clock className="w-5 h-5 text-emerald-500" />
                 <h3 className={`font-bold text-base font-outfit ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>
@@ -76,9 +73,8 @@ export default function BugHistoryDrawer({ isOpen, onClose, onShowToast }) {
               </div>
               <button
                 onClick={onClose}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
+                className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -97,9 +93,8 @@ export default function BugHistoryDrawer({ isOpen, onClose, onShowToast }) {
                 bugs.map((bug) => (
                   <div
                     key={bug.id}
-                    className={`p-4 border rounded-xl space-y-2.5 ${
-                      isDark ? 'bg-black border-zinc-800' : 'bg-[var(--surface)] border-[var(--border-default)] shadow-[var(--shadow-xs)]'
-                    }`}
+                    className={`p-4 border rounded-xl space-y-2.5 ${isDark ? 'bg-black border-zinc-800' : 'bg-[var(--surface)] border-[var(--border-default)] shadow-[var(--shadow-xs)]'
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <h4 className={`text-xs font-bold line-clamp-2 font-outfit flex items-center gap-1.5 ${isDark ? 'text-zinc-200' : 'text-[var(--text-primary)]'}`}>

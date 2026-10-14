@@ -118,11 +118,7 @@ function Dashboard({ user }) {
 
       if (result.success && result.data) {
         setSuiteData(result.data);
-        showToast(
-          result.publicLink
-            ? `QA Test Suite generated successfully! Public link: ${result.publicLink}`
-            : "QA Test Suite generated successfully!",
-        );
+        showToast("QA Test Suite generated successfully!");
       } else {
         showToast(result.error || "Failed to generate test cases.");
       }
@@ -272,11 +268,10 @@ function Dashboard({ user }) {
       {/* Onboarding Azure PAT Setup Banner */}
       {(!user?.azureOrg || !user?.azurePat) && (
         <div
-          className={`p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border transition-all animate-fadeIn ${
-            isDark
-              ? "bg-gradient-to-r from-neutral-900/90 via-emerald-950/40 to-neutral-900/90 border-emerald-500/40 shadow-xl shadow-emerald-950/30"
-              : "bg-[var(--brand-soft)] border-[var(--brand-border)] shadow-[var(--shadow-sm)]"
-          }`}
+          className={`p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border transition-all animate-fadeIn ${isDark
+            ? "bg-gradient-to-r from-neutral-900/90 via-emerald-950/40 to-neutral-900/90 border-emerald-500/40 shadow-xl shadow-emerald-950/30"
+            : "bg-[var(--brand-soft)] border-[var(--brand-border)] shadow-[var(--shadow-sm)]"
+            }`}
         >
           <div className="flex items-center gap-3 text-xs">
             <span className="p-2 bg-emerald-500/20 text-emerald-500 rounded-xl border border-emerald-500/30">
@@ -336,11 +331,10 @@ function Dashboard({ user }) {
           {loading ? (
             /* Loading Spinner State */
             <div
-              className={`backdrop-blur-xl border rounded-2xl p-16 text-center flex flex-col items-center justify-center flex-1 space-y-4 shadow-xl ${
-                isDark
-                  ? "bg-neutral-900/80 border-neutral-800"
-                  : "bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]"
-              }`}
+              className={`backdrop-blur-xl border rounded-2xl p-16 text-center flex flex-col items-center justify-center flex-1 space-y-4 shadow-xl ${isDark
+                ? "bg-neutral-900/80 border-neutral-800"
+                : "bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]"
+                }`}
             >
               <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
               <h3
@@ -358,18 +352,16 @@ function Dashboard({ user }) {
           ) : !suiteData ? (
             /* Empty State Container */
             <div
-              className={`backdrop-blur-xl border rounded-2xl p-12 sm:p-16 text-center flex flex-col items-center justify-center flex-1 space-y-6 shadow-xl ${
-                isDark
-                  ? "bg-neutral-900/80 border-neutral-800"
-                  : "bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]"
-              }`}
+              className={`backdrop-blur-xl border rounded-2xl p-12 sm:p-16 text-center flex flex-col items-center justify-center flex-1 space-y-6 shadow-xl ${isDark
+                ? "bg-neutral-900/80 border-neutral-800"
+                : "bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]"
+                }`}
             >
               <div
-                className={`p-4 rounded-2xl text-emerald-500 shadow-xl ${
-                  isDark
-                    ? "bg-emerald-950/60 border border-emerald-500/30 shadow-emerald-500/10"
-                    : "bg-[var(--brand-soft)] border border-[var(--brand-border)] shadow-[var(--shadow-xs)]"
-                }`}
+                className={`p-4 rounded-2xl text-emerald-500 shadow-xl ${isDark
+                  ? "bg-emerald-950/60 border border-emerald-500/30 shadow-emerald-500/10"
+                  : "bg-[var(--brand-soft)] border border-[var(--brand-border)] shadow-[var(--shadow-xs)]"
+                  }`}
               >
                 <FlaskConical className="w-12 h-12" />
               </div>
@@ -484,9 +476,8 @@ function AppContent() {
   if (authLoading) {
     return (
       <div
-        className={`min-h-screen flex flex-col items-center justify-center space-y-3 font-sans ${
-          isDark ? "bg-black text-neutral-300" : "bg-[var(--bg-primary)] text-[var(--text-secondary)]"
-        }`}
+        className={`min-h-screen flex flex-col items-center justify-center space-y-3 font-sans ${isDark ? "bg-black text-neutral-300" : "bg-[var(--bg-primary)] text-[var(--text-secondary)]"
+          }`}
       >
         <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
         <p className="text-xs font-semibold text-emerald-500">

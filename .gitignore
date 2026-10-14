@@ -17,3 +17,8 @@ output/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Database
+data/
+*.db
+*.sqlite
