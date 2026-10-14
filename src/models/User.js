@@ -1,4 +1,4 @@
-const { dbRun, dbGet, dbAll, isMongoConnected, getCollection } = require('../config/db');
+const { getCollection } = require('../config/db');
 const { encryptToken, decryptToken } = require('../utils/cryptoUtils');
 
 function formatUserDoc(userDoc) {
@@ -17,96 +17,50 @@ function formatUserDoc(userDoc) {
 }
 
 class UserModel {
-  static async findById(id) {
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          const user = await col.findOne({ id });
-          if (user) return formatUserDoc(user);
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] findById error, falling back to SQLite:', e.message);
-      }
+  static getCollection() {
+    const col = getCollection('users');
+    if (!col) {
+      throw new Error('MongoDB is not connected or users collection unavailable.');
     }
-    const row = await dbGet('SELECT * FROM users WHERE id = ?', [id]);
-    return formatUserDoc(row);
+    return col;
+  }
+
+  static async findById(id) {
+    const col = UserModel.getCollection();
+    const user = await col.findOne({ id });
+    return formatUserDoc(user);
   }
 
   static async findByIdentifier(identifier) {
     const cleanId = (identifier || '').trim().toLowerCase();
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          const user = await col.findOne({
-            $or: [
-              { username: new RegExp(`^${cleanId}$`, 'i') },
-              { email: new RegExp(`^${cleanId}$`, 'i') },
-            ],
-          });
-          if (user) return formatUserDoc(user);
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] findByIdentifier error, falling back to SQLite:', e.message);
-      }
-    }
-    const row = await dbGet(
-      'SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?',
-      [cleanId, cleanId]
-    );
-    return formatUserDoc(row);
+    const col = UserModel.getCollection();
+    const user = await col.findOne({
+      $or: [
+        { username: new RegExp(`^${cleanId}$`, 'i') },
+        { email: new RegExp(`^${cleanId}$`, 'i') },
+      ],
+    });
+    return formatUserDoc(user);
   }
 
   static async findByEmailOrUsername(username, email) {
     const cleanUsername = (username || '').trim().toLowerCase();
     const cleanEmail = (email || '').trim().toLowerCase();
+    const col = UserModel.getCollection();
 
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          const query = [];
-          if (cleanUsername) query.push({ username: new RegExp(`^${cleanUsername}$`, 'i') });
-          if (cleanEmail) query.push({ email: new RegExp(`^${cleanEmail}$`, 'i') });
-          if (query.length > 0) {
-            const user = await col.findOne({ $or: query });
-            if (user) return formatUserDoc(user);
-          }
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] findByEmailOrUsername error, falling back to SQLite:', e.message);
-      }
-    }
+    const query = [];
+    if (cleanUsername) query.push({ username: new RegExp(`^${cleanUsername}$`, 'i') });
+    if (cleanEmail) query.push({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+    if (query.length === 0) return null;
 
-    let row = null;
-    if (cleanEmail && cleanUsername) {
-      row = await dbGet(
-        'SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?',
-        [cleanUsername, cleanEmail]
-      );
-    } else if (cleanUsername) {
-      row = await dbGet('SELECT * FROM users WHERE LOWER(username) = ?', [cleanUsername]);
-    } else if (cleanEmail) {
-      row = await dbGet('SELECT * FROM users WHERE LOWER(email) = ?', [cleanEmail]);
-    }
-    return formatUserDoc(row);
+    const user = await col.findOne({ $or: query });
+    return formatUserDoc(user);
   }
 
   static async getAll() {
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          const users = await col.find({}).toArray();
-          if (users && users.length > 0) return users.map(formatUserDoc);
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] getAll error, falling back to SQLite:', e.message);
-      }
-    }
-    const rows = await dbAll('SELECT * FROM users');
-    return (rows || []).map(formatUserDoc);
+    const col = UserModel.getCollection();
+    const users = await col.find({}).toArray();
+    return (users || []).map(formatUserDoc);
   }
 
   static async create(userDoc) {
@@ -128,35 +82,8 @@ class UserModel {
       updated_at: userDoc.updated_at || now,
     };
 
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          await col.updateOne({ id: record.id }, { $set: record }, { upsert: true });
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] create user error, falling back to SQLite:', e.message);
-      }
-    }
-
-    await dbRun(
-      `INSERT OR REPLACE INTO users (id, username, email, name, role, hash, salt, azure_org, azure_pat, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        record.id,
-        record.username,
-        record.email,
-        record.name,
-        record.role,
-        record.hash,
-        record.salt,
-        record.azure_org,
-        record.azure_pat,
-        record.created_at,
-        record.updated_at,
-      ]
-    );
-
+    const col = UserModel.getCollection();
+    await col.updateOne({ id: record.id }, { $set: record }, { upsert: true });
     return formatUserDoc(record);
   }
 
@@ -168,31 +95,18 @@ class UserModel {
     const encryptedPat = cleanPat ? encryptToken(cleanPat) : null;
     const now = new Date().toISOString();
 
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('users');
-        if (col) {
-          await col.updateOne(
-            { id: userId },
-            {
-              $set: {
-                name: cleanName,
-                email: cleanEmail || null,
-                azure_org: cleanOrg,
-                azure_pat: encryptedPat,
-                updated_at: now,
-              },
-            }
-          );
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] updateProfile error, falling back to SQLite:', e.message);
+    const col = UserModel.getCollection();
+    await col.updateOne(
+      { id: userId },
+      {
+        $set: {
+          name: cleanName,
+          email: cleanEmail || null,
+          azure_org: cleanOrg,
+          azure_pat: encryptedPat,
+          updated_at: now,
+        },
       }
-    }
-
-    await dbRun(
-      `UPDATE users SET name = ?, email = ?, azure_org = ?, azure_pat = ?, updated_at = ? WHERE id = ?`,
-      [cleanName, cleanEmail || null, cleanOrg, encryptedPat, now, userId]
     );
 
     return UserModel.findById(userId);

@@ -1,6 +1,14 @@
-const { dbRun, dbGet, dbAll, isMongoConnected, getCollection } = require('../config/db');
+const { getCollection } = require('../config/db');
 
 class TestSuiteModel {
+  static getCollection() {
+    const col = getCollection('test_suites');
+    if (!col) {
+      throw new Error('MongoDB is not connected or test_suites collection unavailable.');
+    }
+    return col;
+  }
+
   static async save({ id, userId, workItemId, featureName, dataJson, fileName, publicLink }) {
     const now = new Date().toISOString();
     const record = {
@@ -14,79 +22,28 @@ class TestSuiteModel {
       created_at: now,
     };
 
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('test_suites');
-        if (col) {
-          await col.updateOne({ id: record.id }, { $set: record }, { upsert: true });
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] TestSuite save error, falling back to SQLite:', e.message);
-      }
-    }
-
-    await dbRun(
-      `INSERT INTO test_suites (id, user_id, work_item_id, feature_name, data_json, file_name, public_link, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [record.id, record.user_id, record.work_item_id, record.feature_name, record.data_json, record.file_name, record.public_link, record.created_at]
-    );
-
+    const col = TestSuiteModel.getCollection();
+    await col.updateOne({ id: record.id }, { $set: record }, { upsert: true });
     return record;
   }
 
   static async findByUser(userId) {
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('test_suites');
-        if (col) {
-          const docs = await col.find({ user_id: userId }).sort({ created_at: -1 }).toArray();
-          if (docs && docs.length > 0) return docs;
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] TestSuite findByUser error, falling back to SQLite:', e.message);
-      }
-    }
-    return dbAll(
-      `SELECT id, work_item_id, feature_name, data_json, file_name, public_link, created_at FROM test_suites WHERE user_id = ? ORDER BY created_at DESC`,
-      [userId]
-    );
+    const col = TestSuiteModel.getCollection();
+    return await col.find({ user_id: userId }).sort({ created_at: -1 }).toArray();
   }
 
   static async findById(id, userId) {
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('test_suites');
-        if (col) {
-          const doc = await col.findOne({
-            $or: [{ id }, { file_name: id }],
-            user_id: userId,
-          });
-          if (doc) return doc;
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] TestSuite findById error, falling back to SQLite:', e.message);
-      }
-    }
-    return dbGet(
-      `SELECT * FROM test_suites WHERE (id = ? OR file_name = ?) AND user_id = ?`,
-      [id, id, userId]
-    );
+    const col = TestSuiteModel.getCollection();
+    return await col.findOne({
+      $or: [{ id }, { file_name: id }],
+      user_id: userId,
+    });
   }
 
   // Public, unauthenticated lookup used by the shared public link page (no user scoping).
   static async findByIdPublic(id) {
-    if (isMongoConnected()) {
-      try {
-        const col = getCollection('test_suites');
-        if (col) {
-          const doc = await col.findOne({ id });
-          if (doc) return doc;
-        }
-      } catch (e) {
-        console.warn('⚠️ [MongoDB] TestSuite findByIdPublic error, falling back to SQLite:', e.message);
-      }
-    }
-    return dbGet(`SELECT * FROM test_suites WHERE id = ?`, [id]);
+    const col = TestSuiteModel.getCollection();
+    return await col.findOne({ id });
   }
 }
 

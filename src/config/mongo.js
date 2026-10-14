@@ -32,8 +32,8 @@ async function connectMongo() {
     isConnected = false;
     db = null;
     client = null;
-    console.warn(`⚠️ [MongoDB] Connection failed (${err.message}). Using SQLite storage fallback.`);
-    return null;
+    console.error(`❌ [MongoDB] Connection failed (${err.message}). Ensure MongoDB is running at ${mongoUrl}.`);
+    throw err;
   }
 }
 
