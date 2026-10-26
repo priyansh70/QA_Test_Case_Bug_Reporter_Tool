@@ -153,6 +153,24 @@ npm start 4521
 npm run demo
 ```
 
+### Website Testing Sessions (Chrome extension)
+
+Record a tester's session on a website, capture bugs with screenshots, generate reports with the AI bug generator, and create them as Azure DevOps Bugs in the chosen sprint. Setup, permissions and manual verification steps: [extension/README.md](extension/README.md).
+
+### Swagger API Documentation
+
+Interactive OpenAPI 3.0 API documentation is available via Swagger UI:
+- **Interactive Swagger UI**: `http://localhost:3000/api-docs` (or `/docs`, `/api/docs`)
+- **Raw OpenAPI JSON Spec**: `http://localhost:3000/api-docs.json` (or `/api/swagger.json`)
+
+Supports test authentication with Bearer tokens (`qatk_...`) and session-scoped extension tokens (`X-Session-Token`).
+
+### Tests
+
+```bash
+npm test   # node:test; runs all 33 unit and integration tests (Swagger, Redaction, Generator, Sessions)
+```
+
 ---
 
 ## 🛠 Tech Stack

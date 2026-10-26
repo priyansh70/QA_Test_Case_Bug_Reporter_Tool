@@ -3,14 +3,25 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const apiRoutes = require('./routes');
+const swaggerUi = require('swagger-ui-express');
+const { swaggerSpec, swaggerUiOptions } = require('./config/swagger');
 const BugController = require('./controllers/bugController');
 const TestSuiteController = require('./controllers/testSuiteController');
 
 const app = express();
 
 app.use(cors());
+// Session/extension endpoints get a tighter body limit (one ~5 MB screenshot as base64 + metadata);
+// once parsed here, the global parser below skips the request.
+app.use('/api/testing-sessions', express.json({ limit: '8mb' }));
+app.use('/api/captured-bugs', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Swagger API Documentation UI & raw OpenAPI 3.0 specification
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
+app.get('/docs', (req, res) => res.redirect('/api-docs'));
 
 // Public, unauthenticated bug report page shared via the public link generated on publish.
 app.get('/bugs/public/:id', BugController.renderPublicBug);

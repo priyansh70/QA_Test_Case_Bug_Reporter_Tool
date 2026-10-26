@@ -4,11 +4,13 @@
 
 The backend of this application strictly follows **MVC (Model-View-Controller)** architecture:
 
-- **`src/config/`**: Database connections (`mongo.js`, `db.js`) and environment settings.
-- **`src/models/`**: Data Access Objects / Models (`User.js`, `TestSuite.js`, `Bug.js`).
-- **`src/middlewares/`**: Express Middlewares (`authMiddleware.js`).
-- **`src/controllers/`**: Request Handlers & Business Logic (`authController.js`, `testSuiteController.js`, `bugController.js`, `azureController.js`).
-- **`src/routes/`**: Express Router endpoints (`authRoutes.js`, `testSuiteRoutes.js`, `bugRoutes.js`, `azureRoutes.js`, `index.js`).
+- **`src/config/`**: Database connections (`mongo.js`, `db.js`), OpenAPI/Swagger configuration (`swagger.js`), and environment settings.
+- **`src/models/`**: Data Access Objects / Models (`User.js`, `TestSuite.js`, `Bug.js`, `TestingSession.js`, `CapturedBug.js`).
+- **`src/middlewares/`**: Express Middlewares (`authMiddleware.js`, `sessionAuthMiddleware.js`).
+- **`src/controllers/`**: Request Handlers & Business Logic (`authController.js`, `testSuiteController.js`, `bugController.js`, `azureController.js`, `testingSessionController.js`).
+- **`src/routes/`**: Express Router endpoints (`authRoutes.js`, `testSuiteRoutes.js`, `bugRoutes.js`, `azureRoutes.js`, `testingSessionRoutes.js`, `swaggerRoutes.js`, `index.js`).
+- **`extension/`**: Chrome MV3 session recorder (see `extension/README.md`); `redact.js` is shared with the backend.
+- **`tests/`**: `node:test` suites (`npm test`, requires MongoDB).
 - **`src/app.js`**: Express App initialization and middleware pipeline.
 - **`src/server.js`**: Web server HTTP listener entry point.
 
