@@ -20,8 +20,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
 
   return (
     <header className={`flex flex-col sm:flex-row justify-between items-center px-6 py-4 rounded-2xl border transition-all duration-200 gap-4 font-sans ${isDark
-        ? 'bg-neutral-900/90 backdrop-blur-xl border-neutral-800 shadow-2xl shadow-black/50'
-        : 'bg-[var(--surface)] backdrop-blur-xl border-[var(--border-subtle)] shadow-[var(--shadow-header)]'
+      ? 'bg-neutral-900/90 backdrop-blur-xl border-neutral-800 shadow-2xl shadow-black/50'
+      : 'bg-[var(--surface)] backdrop-blur-xl border-[var(--border-subtle)] shadow-[var(--shadow-header)]'
       }`}>
       <div className="flex items-center gap-3">
         <div className="p-2.5 bg-gradient-to-tr from-emerald-600 via-green-500 to-emerald-400 rounded-xl text-neutral-950 shadow-lg shadow-emerald-500/30">
@@ -29,8 +29,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         </div>
         <div>
           <h1 className={`font-bold text-xl tracking-tight font-outfit ${isDark
-              ? 'bg-gradient-to-r from-white via-neutral-100 to-emerald-400 bg-clip-text text-transparent'
-              : 'text-[var(--text-primary)]'
+            ? 'bg-gradient-to-r from-white via-neutral-100 to-emerald-400 bg-clip-text text-transparent'
+            : 'text-[var(--text-primary)]'
             }`}>
             QA Test Suite Generator
           </h1>
@@ -47,8 +47,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
           title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
           aria-label={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
-              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
+            ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
+            : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
             }`}
         >
           {sidebarOpen ? <PanelLeftClose className="w-4 h-4 text-emerald-500" /> : <PanelLeftOpen className="w-4 h-4 text-emerald-500" />}
@@ -57,8 +57,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
 
         {/* Environment status pill */}
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${isDark
-            ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 shadow-sm shadow-emerald-950/50'
-            : 'bg-[var(--brand-soft)] border border-[var(--brand-border)] text-[var(--brand-text)] shadow-[var(--shadow-xs)]'
+          ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 shadow-sm shadow-emerald-950/50'
+          : 'bg-[var(--brand-soft)] border border-[var(--brand-border)] text-[var(--brand-text)] shadow-[var(--shadow-xs)]'
           }`}>
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -77,8 +77,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
           onClick={toggleTheme}
           title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-neutral-800 hover:bg-neutral-700 text-amber-300 border-neutral-700'
-              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]'
+            ? 'bg-neutral-800 hover:bg-neutral-700 text-amber-300 border-neutral-700'
+            : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]'
             }`}
         >
           {isDark ? (
@@ -98,8 +98,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         <button
           onClick={onOpenBugLogger}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-gradient-to-r from-red-950/60 to-emerald-950/60 hover:from-red-900/60 hover:to-emerald-900/60 text-red-200 border-red-500/30'
-              : 'bg-[var(--danger-soft)] hover:bg-[#FEE2E2] text-[var(--danger)] border-[var(--danger-soft-border)]'
+            ? 'bg-gradient-to-r from-red-950/60 to-emerald-950/60 hover:from-red-900/60 hover:to-emerald-900/60 text-red-200 border-red-500/30'
+            : 'bg-[var(--danger-soft)] hover:bg-[#FEE2E2] text-[var(--danger)] border-[var(--danger-soft-border)]'
             }`}
         >
           <Bug className="w-4 h-4 text-red-500" />
@@ -110,8 +110,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         <button
           onClick={onOpenTestingSessions}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
-              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
+            ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
+            : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
             }`}
         >
           <Video className="w-4 h-4 text-emerald-500" />
@@ -122,8 +122,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         <button
           onClick={onOpenHistory}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
-              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
+            ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
+            : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
             }`}
         >
           <History className="w-4 h-4 text-emerald-500" />
@@ -134,8 +134,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         <button
           onClick={onOpenBugHistory}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 shadow-sm ${isDark
-              ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
-              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
+            ? 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800 hover:border-emerald-500/40'
+            : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-400'
             }`}
         >
           <ListChecks className="w-4 h-4 text-emerald-500" />
@@ -143,7 +143,7 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         </button>
 
         {/* Swagger API Documentation link */}
-        <a
+        {/* <a
           href="/api-docs"
           target="_blank"
           rel="noopener noreferrer"
@@ -155,7 +155,7 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
         >
           <BookOpen className="w-4 h-4 text-emerald-500" />
           <span>API Docs</span>
-        </a>
+        </a> */}
 
         {/* User profile avatar pill */}
         {user && (
@@ -163,8 +163,8 @@ export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHis
             onClick={onOpenProfile}
             title="Open Profile & PAT Settings"
             className={`flex items-center gap-2.5 pl-2.5 pr-2 py-1 border rounded-xl cursor-pointer transition-all ${isDark
-                ? 'bg-neutral-950/80 hover:bg-neutral-950 border-neutral-800 hover:border-emerald-500/50 text-neutral-200'
-                : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] hover:border-emerald-500/50 text-[var(--text-primary)]'
+              ? 'bg-neutral-950/80 hover:bg-neutral-950 border-neutral-800 hover:border-emerald-500/50 text-neutral-200'
+              : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] hover:border-emerald-500/50 text-[var(--text-primary)]'
               }`}
           >
             <div className="w-6 h-6 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-black flex items-center justify-center font-extrabold text-[11px] shadow-sm">
