@@ -29,6 +29,7 @@ export default function Sidebar({
   generationMode = 'direct',
   setGenerationMode,
   onReviewUserStory,
+  onShowToast,
 }) {
   const { authFetch, user } = useAuth();
   const { isDark } = useTheme();
@@ -40,6 +41,7 @@ export default function Sidebar({
   const [stories, setStories] = useState([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [fetchingPreview, setFetchingPreview] = useState(false);
+  const [fetchError, setFetchError] = useState('');
 
   // Fetch Projects when in dropdown mode or when user PAT updates
   useEffect(() => {
@@ -92,22 +94,42 @@ export default function Sidebar({
     setSelectedStory(story);
     if (story && story.id) {
       setWorkItemId(String(story.id));
+      setFetchError('');
       fetchWorkItemPreview(story.id);
     }
   };
 
   const fetchWorkItemPreview = async (id) => {
-    const targetId = id || workItemId.trim();
-    if (!targetId) return;
+    const rawId = id !== undefined ? id : workItemId;
+    const targetId = rawId ? String(rawId).trim() : '';
+
+    if (!targetId) {
+      const msg = 'Please enter an Azure DevOps Work Item ID.';
+      setFetchError(msg);
+      if (onShowToast) onShowToast(msg);
+      return;
+    }
 
     setFetchingPreview(true);
+    setFetchError('');
+
     try {
       const data = await fetchAzureWorkItemById(targetId);
-      if (data.success && data.workItem) {
+      if (data && data.success && data.workItem) {
         setWorkItemPreview(data.workItem);
+        setFetchError('');
+      } else {
+        const errorMsg = data?.error || `Work Item #${targetId} was not found in Azure DevOps.`;
+        setWorkItemPreview(null);
+        setFetchError(errorMsg);
+        if (onShowToast) onShowToast(errorMsg);
       }
     } catch (err) {
       console.error('Failed to fetch preview:', err);
+      const errorMsg = err?.message || `Work Item #${targetId} was not found in Azure DevOps.`;
+      setWorkItemPreview(null);
+      setFetchError(errorMsg);
+      if (onShowToast) onShowToast(errorMsg);
     } finally {
       setFetchingPreview(false);
     }
@@ -117,27 +139,24 @@ export default function Sidebar({
     return (
       <aside
         title="Open Sidebar"
-        className={`hidden lg:flex w-14 shrink-0 flex-col items-center gap-3 py-4 rounded-2xl border backdrop-blur-xl shadow-xl transition-colors ${
-          isDark
-            ? 'bg-neutral-900/90 border-neutral-800 shadow-black/50'
-            : 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]'
-        }`}
+        className={`hidden lg:flex w-14 shrink-0 flex-col items-center gap-3 py-4 rounded-2xl border backdrop-blur-xl shadow-xl transition-colors ${isDark
+          ? 'bg-neutral-900/90 border-neutral-800 shadow-black/50'
+          : 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]'
+          }`}
       >
         <button
           type="button"
           onClick={onToggle}
           title="Open Sidebar"
-          className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
-            isDark
-              ? 'bg-black border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40'
-              : 'bg-[var(--surface-hover)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-600 hover:border-emerald-400'
-          }`}
+          className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${isDark
+            ? 'bg-black border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40'
+            : 'bg-[var(--surface-hover)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-600 hover:border-emerald-400'
+            }`}
         >
           <PanelLeftOpen className="w-4 h-4" />
         </button>
-        <span className={`p-2 rounded-xl border ${
-          isDark ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-500' : 'bg-[var(--brand-soft)] border-[var(--brand-border)] text-emerald-600'
-        }`}>
+        <span className={`p-2 rounded-xl border ${isDark ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-500' : 'bg-[var(--brand-soft)] border-[var(--brand-border)] text-emerald-600'
+          }`}>
           <Target className="w-4 h-4" />
         </span>
       </aside>
@@ -147,15 +166,13 @@ export default function Sidebar({
   return (
     <aside className="flex flex-col gap-5 w-full lg:w-96 shrink-0 font-sans">
       {/* Input Mode Selector Card */}
-      <div className={`backdrop-blur-xl border rounded-2xl p-6 shadow-xl flex flex-col gap-4 transition-colors ${
-        isDark
-          ? 'bg-neutral-900/90 border-neutral-800 shadow-black/50'
-          : 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]'
-      }`}>
+      <div className={`backdrop-blur-xl border rounded-2xl p-6 shadow-xl flex flex-col gap-4 transition-colors ${isDark
+        ? 'bg-neutral-900/90 border-neutral-800 shadow-black/50'
+        : 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]'
+        }`}>
         <div className="flex items-center justify-between gap-2">
-          <h2 className={`text-base font-bold flex items-center gap-2 font-outfit ${
-            isDark ? 'text-white' : 'text-[var(--text-primary)]'
-          }`}>
+          <h2 className={`text-base font-bold flex items-center gap-2 font-outfit ${isDark ? 'text-white' : 'text-[var(--text-primary)]'
+            }`}>
             <Target className="w-5 h-5 text-emerald-500" />
             <span>Work Item Input</span>
           </h2>
@@ -165,40 +182,42 @@ export default function Sidebar({
               type="button"
               onClick={onToggle}
               title="Close Sidebar"
-              className={`hidden lg:flex w-7 h-7 items-center justify-center rounded-lg border transition-all active:scale-95 ${
-                isDark
-                  ? 'bg-black border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40'
-                  : 'bg-[var(--surface-hover)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-600 hover:border-emerald-400'
-              }`}
+              className={`hidden lg:flex w-7 h-7 items-center justify-center rounded-lg border transition-all active:scale-95 ${isDark
+                ? 'bg-black border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/40'
+                : 'bg-[var(--surface-hover)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-600 hover:border-emerald-400'
+                }`}
             >
               <PanelLeftClose className="w-3.5 h-3.5" />
             </button>
 
-            <div className={`flex p-1 border rounded-xl ${
-              isDark ? 'bg-black border-zinc-800' : 'bg-[var(--surface-hover)] border-[var(--border-default)]'
-            }`}>
-            <button
-              type="button"
-              onClick={() => setInputMode('dropdown')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                inputMode === 'dropdown'
+            <div className={`flex p-1 border rounded-xl ${isDark ? 'bg-black border-zinc-800' : 'bg-[var(--surface-hover)] border-[var(--border-default)]'
+              }`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('dropdown');
+                  setFetchError('');
+                }}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${inputMode === 'dropdown'
                   ? 'bg-emerald-500 text-black shadow-sm'
                   : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Explorer
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('manual')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                inputMode === 'manual'
+                  }`}
+              >
+                Explorer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('manual');
+                  setFetchError('');
+                }}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${inputMode === 'manual'
                   ? 'bg-emerald-500 text-black shadow-sm'
                   : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Manual ID
-            </button>
+                  }`}
+              >
+                Manual ID
+              </button>
             </div>
           </div>
         </div>
@@ -208,22 +227,20 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => setGenerationMode && setGenerationMode('direct')}
-            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-              generationMode === 'direct'
-                ? 'bg-emerald-500 text-black shadow-sm'
-                : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${generationMode === 'direct'
+              ? 'bg-emerald-500 text-black shadow-sm'
+              : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
           >
             Quick Generate
           </button>
           <button
             type="button"
             onClick={() => setGenerationMode && setGenerationMode('review')}
-            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-              generationMode === 'review'
-                ? 'bg-emerald-500 text-black shadow-sm'
-                : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+            className={`flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${generationMode === 'review'
+              ? 'bg-emerald-500 text-black shadow-sm'
+              : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
           >
             Review & Edit First
           </button>
@@ -252,9 +269,8 @@ export default function Sidebar({
                   <button
                     type="button"
                     onClick={fetchProjects}
-                    className={`text-[10px] flex items-center gap-1 transition-colors ${
-                      isDark ? 'text-zinc-500 hover:text-emerald-400' : 'text-[var(--text-disabled)] hover:text-emerald-600'
-                    }`}
+                    className={`text-[10px] flex items-center gap-1 transition-colors ${isDark ? 'text-zinc-500 hover:text-emerald-400' : 'text-[var(--text-disabled)] hover:text-emerald-600'
+                      }`}
                   >
                     <RefreshCw className="w-3 h-3" /> Refresh
                   </button>
@@ -294,9 +310,9 @@ export default function Sidebar({
                       : stories.length === 0
                         ? [{ value: '', label: 'No stories in selected project' }]
                         : stories.map((s) => ({
-                            value: String(s.id),
-                            label: `#${s.id} - ${s.title}`,
-                          }))
+                          value: String(s.id),
+                          label: `#${s.id} - ${s.title}`,
+                        }))
                   }
                 />
               </div>
@@ -311,33 +327,55 @@ export default function Sidebar({
                 <input
                   type="number"
                   value={workItemId}
-                  onChange={(e) => setWorkItemId(e.target.value)}
+                  onChange={(e) => {
+                    setWorkItemId(e.target.value);
+                    if (fetchError) setFetchError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      fetchWorkItemPreview();
+                    }
+                  }}
                   placeholder="e.g. 42516"
-                  className={`w-full px-3.5 py-2.5 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                    isDark
-                      ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-600'
-                      : 'bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
-                  }`}
+                  className={`[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none w-full px-3.5 py-2.5 border rounded-xl text-xs focus:outline-none focus:ring-1 transition-colors ${fetchError
+                    ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/30'
+                    : isDark
+                      ? 'border-zinc-800 focus:border-emerald-500 focus:ring-emerald-500'
+                      : 'border-[var(--border-default)] focus:border-emerald-500 focus:ring-emerald-500'
+                    } ${isDark
+                      ? 'bg-black text-zinc-100 placeholder-zinc-600'
+                      : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
+                    }`}
                 />
                 <button
                   type="button"
                   onClick={() => fetchWorkItemPreview()}
                   disabled={fetchingPreview || !workItemId || !azureConfigured}
-                  className={`px-3.5 py-2.5 disabled:opacity-50 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 ${
-                    isDark
-                      ? 'bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-800 hover:border-emerald-500/40'
-                      : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-500'
-                  }`}
+                  className={`px-3.5 py-2.5 disabled:opacity-50 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 active:scale-95 ${isDark
+                    ? 'bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-800 hover:border-emerald-500/40'
+                    : 'bg-[var(--surface-hover)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-emerald-500'
+                    }`}
                 >
                   {fetchingPreview ? <span className="animate-spin text-emerald-500">🌀</span> : <Search className="w-3.5 h-3.5 text-emerald-500" />}
                   Fetch
                 </button>
               </div>
 
+              {/* Error message when Work Item does not exist or fetch fails */}
+              {fetchError && (
+                <div className={`p-3 border rounded-xl text-[11px] flex items-start gap-2 mt-2.5 animate-fadeIn ${isDark
+                  ? 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                  : 'bg-rose-50 border-rose-200 text-rose-700'
+                  }`}>
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-500" />
+                  <span className="flex-1 font-medium leading-relaxed">{fetchError}</span>
+                </div>
+              )}
+
               {!azureConfigured && (
-                <div className={`p-3 border rounded-xl text-[11px] flex items-start gap-2 mt-4 animate-fadeIn ${
-                  isDark ? 'bg-amber-950/40 border-amber-500/40 text-amber-300' : 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
-                }`}>
+                <div className={`p-3 border rounded-xl text-[11px] flex items-start gap-2 mt-4 animate-fadeIn ${isDark ? 'bg-amber-950/40 border-amber-500/40 text-amber-300' : 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+                  }`}>
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>Azure PAT is not configured. Add your Organization Name & PAT in <b>Profile</b> before fetching or generating test cases.</span>
                 </div>
@@ -347,20 +385,17 @@ export default function Sidebar({
 
           {/* Work Item Preview Card */}
           {workItemPreview && (
-            <div className={`p-3.5 border rounded-xl space-y-1.5 animate-fadeIn ${
-              isDark
-                ? 'bg-emerald-950/40 border-emerald-500/30'
-                : 'bg-[var(--brand-soft)] border-[var(--brand-border)]'
-            }`}>
+            <div className={`p-3.5 border rounded-xl space-y-1.5 animate-fadeIn ${isDark
+              ? 'bg-emerald-950/40 border-emerald-500/30'
+              : 'bg-[var(--brand-soft)] border-[var(--brand-border)]'
+              }`}>
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${
-                  isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand-border)]'
-                }`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand-border)]'
+                  }`}>
                   {workItemPreview.type}
                 </span>
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
-                  isDark ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]'
-                }`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${isDark ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]'
+                  }`}>
                   #{workItemPreview.id}
                 </span>
               </div>
@@ -424,24 +459,21 @@ export default function Sidebar({
 
       {/* Overview Stats Widget */}
       {totalCases > 0 && (
-        <div className={`backdrop-blur-xl border rounded-2xl p-5 shadow-xl space-y-3 ${
-          isDark ? 'bg-neutral-900/90 border-neutral-800' : 'bg-[var(--surface)] border-[var(--border-subtle)]'
-        }`}>
+        <div className={`backdrop-blur-xl border rounded-2xl p-5 shadow-xl space-y-3 ${isDark ? 'bg-neutral-900/90 border-neutral-800' : 'bg-[var(--surface)] border-[var(--border-subtle)]'
+          }`}>
           <h3 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-neutral-400' : 'text-[var(--text-muted)]'}`}>
             Test Suite Overview
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className={`p-3 border rounded-xl text-center ${
-              isDark ? 'bg-black/80 border-neutral-800/80' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
-            }`}>
+            <div className={`p-3 border rounded-xl text-center ${isDark ? 'bg-black/80 border-neutral-800/80' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
+              }`}>
               <span className="text-2xl font-extrabold text-emerald-500 block font-outfit">
                 {totalCases}
               </span>
               <span className={`text-[11px] ${isDark ? 'text-neutral-400' : 'text-[var(--text-muted)]'}`}>Total Scenarios</span>
             </div>
-            <div className={`p-3 border rounded-xl text-center ${
-              isDark ? 'bg-black/80 border-neutral-800/80' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
-            }`}>
+            <div className={`p-3 border rounded-xl text-center ${isDark ? 'bg-black/80 border-neutral-800/80' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'
+              }`}>
               <span className="text-2xl font-extrabold text-emerald-600 block font-outfit">
                 {totalSections}
               </span>

@@ -21,6 +21,19 @@ function generateTemplateBugReport(bugTitle, storyContext = {}) {
 
   const scriptContext = (storyContext && storyContext.script) ? `\nRelated Test Case: ${storyContext.script}` : '';
 
+  // Testing-session bugs: use the recorded steps and do not invent an expected result.
+  if (Array.isArray(storyContext.recordedSteps) && storyContext.recordedSteps.length > 0) {
+    return {
+      title: cleanTitle,
+      severity,
+      description: `Defect observed: ${cleanTitle}.\n${storyContext.description || ''}`.trim(),
+      stepsToReproduce: storyContext.recordedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n'),
+      expectedResult: 'Not determinable from captured evidence - tester to confirm the expected behavior.',
+      actualResult: cleanTitle,
+      isTemplate: true,
+    };
+  }
+
   return {
     title: cleanTitle,
     severity,
@@ -48,7 +61,7 @@ Do NOT include markdown backticks (\`\`\`json) outside the JSON object.
 The output JSON structure MUST match this exact format:
 {
   "title": "<Bug Title>",
-  "severity": "2 - High",
+  "severity": "1 - Critical | 2 - High | 3 - Medium | 4 - Low",
   "description": "<Detailed clear summary of the defect and impact on end users.>",
   "stepsToReproduce": "1. Open app...\\n2. Perform action...\\n3. Observe behavior...",
   "expectedResult": "<Clear description of expected behavior.>",
@@ -56,11 +69,21 @@ The output JSON structure MUST match this exact format:
 }`;
 
   const scriptText = storyContext.script ? `QA Test Script / Scenario: "${storyContext.script}"\n` : '';
+  // Evidence recorded by the browser extension during a testing session (URL, page title, actions).
+  const evidenceText = storyContext.recordedEvidence
+    ? `\nRecorded Session Evidence:\n${storyContext.recordedEvidence}\n
+Rules for recorded evidence: build stepsToReproduce ONLY from the recorded actions above. Do not invent behavior.
+Write stepsToReproduce in plain, human language a tester would say (e.g. "Log in with valid credentials", "Open the Settings page and click Save").
+Merge related low-level actions (clicking a field, typing, submitting) into one meaningful step, drop noise such as repeated or irrelevant clicks, and never mention tags, selectors, element ids or raw event names.
+Keep the order and number each step on its own line.
+If the expected or actual result cannot be determined from the bug summary and evidence, write
+"Not determinable from captured evidence - tester to confirm: <what information is missing>" for that field.\n`
+    : '';
   const userPrompt = `Bug Summary: "${bugTitle}"
 ${scriptText}Parent Story Context (if available):
 Title: "${storyContext.title || 'General App Story'}"
 Description: "${storyContext.description || 'N/A'}"
-
+${evidenceText}
 Generate the complete JSON bug report.`;
 
   try {

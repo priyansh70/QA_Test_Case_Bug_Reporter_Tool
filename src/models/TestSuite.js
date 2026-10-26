@@ -34,10 +34,12 @@ class TestSuiteModel {
 
   static async findById(id, userId) {
     const col = TestSuiteModel.getCollection();
-    return await col.findOne({
-      $or: [{ id }, { file_name: id }],
-      user_id: userId,
-    });
+    // Prioritize direct match on unique suite ID
+    const byId = await col.findOne({ id, user_id: userId });
+    if (byId) return byId;
+
+    // Fallback lookup by file_name (e.g. legacy calls, sorted newest first)
+    return await col.findOne({ file_name: id, user_id: userId }, { sort: { created_at: -1 } });
   }
 
   // Public, unauthenticated lookup used by the shared public link page (no user scoping).

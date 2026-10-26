@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "QA Session Recorder",
+  "version": "1.0.0",
+  "description": "Records testing-session interactions and captures bug evidence for the QA Test Suite Generator.",
+  "permissions": ["storage", "scripting", "alarms"],
+  "optional_host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "QA Session Recorder",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*", "http://localhost:5173/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

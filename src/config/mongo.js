@@ -55,6 +55,19 @@ async function initMongoIndexes() {
     const bugsCol = db.collection('bugs');
     await bugsCol.createIndex({ user_id: 1, created_at: -1 });
     await bugsCol.createIndex({ id: 1 }, { unique: true });
+
+    const sessionsCol = db.collection('testing_sessions');
+    await sessionsCol.createIndex({ id: 1 }, { unique: true });
+    await sessionsCol.createIndex({ user_id: 1, created_at: -1 });
+
+    // Unique (session_id, seq) makes retried event batches idempotent.
+    const eventsCol = db.collection('session_events');
+    await eventsCol.createIndex({ session_id: 1, seq: 1 }, { unique: true });
+
+    const capturedCol = db.collection('captured_bugs');
+    await capturedCol.createIndex({ id: 1 }, { unique: true });
+    await capturedCol.createIndex({ session_id: 1, client_bug_id: 1 }, { unique: true });
+    await capturedCol.createIndex({ user_id: 1, session_id: 1 });
   } catch (e) {
     console.warn('⚠️ [MongoDB] Index initialization note:', e.message);
   }

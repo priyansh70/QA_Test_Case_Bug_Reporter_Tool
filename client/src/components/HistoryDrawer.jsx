@@ -96,7 +96,7 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadFile, onShowToast
                   >
                     <div
                       onClick={() => {
-                        onLoadFile(item.fileName);
+                        onLoadFile(item.id || item.fileName);
                         onClose();
                       }}
                       className="cursor-pointer space-y-2"

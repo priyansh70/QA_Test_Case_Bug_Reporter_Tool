@@ -10,6 +10,7 @@ import BugHistoryDrawer from "./components/BugHistoryDrawer";
 import ProfileModal from "./components/ProfileModal";
 import BugReporterModal from "./components/BugReporterModal";
 import ReviewUserStoryModal from "./components/ReviewUserStoryModal";
+import TestingSessionsModal from "./components/TestingSessionsModal";
 import Toast from "./components/Toast";
 import AuthView from "./components/AuthView";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -28,8 +29,8 @@ function Dashboard({ user }) {
   const { toastMessage, showToast } = useToast();
   const [config, setConfig] = useState(null);
   const [workItemId, setWorkItemId] = useState("");
-  const [provider, setProvider] = useState("gemini");
-  const [model, setModel] = useState("gemini-3.6-flash");
+  const [provider, setProvider] = useState("");
+  const [model, setModel] = useState("");
 
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedStory, setSelectedStory] = useState(null);
@@ -49,6 +50,7 @@ function Dashboard({ user }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [bugLoggerOpen, setBugLoggerOpen] = useState(false);
   const [bugHistoryOpen, setBugHistoryOpen] = useState(false);
+  const [testingSessionsOpen, setTestingSessionsOpen] = useState(false);
 
   // Generate flow: 'direct' (current, one-click) vs 'review' (edit user story before generating)
   const [generationMode, setGenerationMode] = useState("direct");
@@ -66,6 +68,7 @@ function Dashboard({ user }) {
     setProfileOpen(false);
     setBugLoggerOpen(false);
     setBugHistoryOpen(false);
+    setTestingSessionsOpen(false);
     setGenerationMode("direct");
     setReviewModalOpen(false);
   }, [user?.id]);
@@ -263,6 +266,7 @@ function Dashboard({ user }) {
         onOpenProfile={() => setProfileOpen(true)}
         onOpenBugLogger={() => setBugLoggerOpen(true)}
         onOpenBugHistory={() => setBugHistoryOpen(true)}
+        onOpenTestingSessions={() => setTestingSessionsOpen(true)}
       />
 
       {/* Onboarding Azure PAT Setup Banner */}
@@ -324,6 +328,7 @@ function Dashboard({ user }) {
           generationMode={generationMode}
           setGenerationMode={setGenerationMode}
           onReviewUserStory={handleOpenReview}
+          onShowToast={showToast}
         />
 
         {/* Workspace Viewer Container */}
@@ -345,8 +350,7 @@ function Dashboard({ user }) {
               <p
                 className={`text-xs max-w-sm ${isDark ? "text-neutral-400" : "text-[var(--text-muted)]"}`}
               >
-                Analyzing requirements, acceptance criteria, and storing test
-                scenarios in SQLite database.
+                Analyzing requirements and generating test cases based on acceptance criteria.
               </p>
             </div>
           ) : !suiteData ? (
@@ -451,6 +455,15 @@ function Dashboard({ user }) {
         onShowToast={showToast}
       />
 
+      {/* Website Testing Sessions (Chrome extension recording & captured bugs) */}
+      <TestingSessionsModal
+        isOpen={testingSessionsOpen}
+        onClose={() => setTestingSessionsOpen(false)}
+        onShowToast={showToast}
+        provider={provider}
+        model={model}
+      />
+
       {/* Review & Edit User Story Modal (2nd generation flow) */}
       <ReviewUserStoryModal
         isOpen={reviewModalOpen}
@@ -481,7 +494,7 @@ function AppContent() {
       >
         <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
         <p className="text-xs font-semibold text-emerald-500">
-          Connecting to SQLite Database...
+          Loading....
         </p>
       </div>
     );

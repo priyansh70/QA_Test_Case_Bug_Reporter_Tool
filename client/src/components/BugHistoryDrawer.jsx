@@ -119,7 +119,7 @@ export default function BugHistoryDrawer({ isOpen, onClose, onShowToast }) {
                           className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500 hover:text-emerald-400"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          Azure Bug #{bug.azure_bug_id} (redirect link)
+                          Azure Bug #{bug.azure_bug_id}
                         </a>
                       ) : (
                         <span className="text-[11px] text-zinc-500">Not published to Azure DevOps</span>

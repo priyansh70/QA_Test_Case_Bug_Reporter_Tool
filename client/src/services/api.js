@@ -130,3 +130,73 @@ export async function fetchScripts() {
   const res = await authFetch('/api/scripts');
   return parseApiResponse(res);
 }
+
+// ---------- Website testing sessions ----------
+
+async function postJson(url, body, method = 'POST') {
+  const res = await authFetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  return parseApiResponse(res);
+}
+
+export async function createTestingSession({ websiteUrl, projectId, iterationId }) {
+  return postJson('/api/testing-sessions', { websiteUrl, projectId, iterationId });
+}
+
+export async function fetchTestingSessions() {
+  return parseApiResponse(await authFetch('/api/testing-sessions'));
+}
+
+export async function fetchTestingSession(id) {
+  return parseApiResponse(await authFetch(`/api/testing-sessions/${encodeURIComponent(id)}`));
+}
+
+export async function fetchSessionEvents(id, afterSeq = 0) {
+  return parseApiResponse(await authFetch(`/api/testing-sessions/${encodeURIComponent(id)}/events?afterSeq=${afterSeq}`));
+}
+
+export async function fetchSessionBugs(id) {
+  return parseApiResponse(await authFetch(`/api/testing-sessions/${encodeURIComponent(id)}/bugs`));
+}
+
+export async function rotateSessionConnectToken(id) {
+  return postJson(`/api/testing-sessions/${encodeURIComponent(id)}/connect-token`);
+}
+
+export async function stopTestingSession(id) {
+  return postJson(`/api/testing-sessions/${encodeURIComponent(id)}/stop`);
+}
+
+export async function deleteTestingSession(id) {
+  return parseApiResponse(await authFetch(`/api/testing-sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }));
+}
+
+export async function deleteCapturedBug(bugId) {
+  return parseApiResponse(await authFetch(`/api/captured-bugs/${encodeURIComponent(bugId)}`, { method: 'DELETE' }));
+}
+
+export async function fetchCapturedBug(bugId) {
+  return parseApiResponse(await authFetch(`/api/captured-bugs/${encodeURIComponent(bugId)}`));
+}
+
+export async function updateCapturedBug(bugId, { title, report }) {
+  return postJson(`/api/captured-bugs/${encodeURIComponent(bugId)}`, { title, report }, 'PATCH');
+}
+
+export async function generateCapturedBugReport(bugId, { provider, model } = {}) {
+  return postJson(`/api/captured-bugs/${encodeURIComponent(bugId)}/generate`, { provider, model });
+}
+
+export async function createCapturedBugInAzure(bugId) {
+  return postJson(`/api/captured-bugs/${encodeURIComponent(bugId)}/create-azure-bug`);
+}
+
+/** Screenshots are auth-protected, so they are fetched as a blob and shown via an object URL. */
+export async function fetchCapturedBugScreenshotUrl(bugId) {
+  const res = await authFetch(`/api/captured-bugs/${encodeURIComponent(bugId)}/screenshot`);
+  if (!res.ok) return null;
+  return URL.createObjectURL(await res.blob());
+}

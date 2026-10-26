@@ -6,9 +6,16 @@ class AzureController {
     const configuredOrg = isUserConfigured ? req.user.azureOrg : process.env.AZURE_DEVOPS_ORG || 'Demo Workspace';
 
     let aiProvider = (process.env.AI_PROVIDER || '').toLowerCase().trim();
+    const hasAnthropicKey = Boolean(
+      (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes('your_claude')) ||
+      (process.env.CLAUDE_API_KEY && !process.env.CLAUDE_API_KEY.includes('your_claude'))
+    );
+
     if (!aiProvider) {
       if (process.env.OPENROUTER_API_KEY) {
         aiProvider = 'openrouter';
+      } else if (hasAnthropicKey) {
+        aiProvider = 'claude';
       } else if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
         aiProvider = 'gemini';
       } else {
@@ -19,7 +26,9 @@ class AzureController {
     let aiModel = process.env.AI_MODEL;
     if (!aiModel) {
       if (aiProvider === 'openrouter') {
-        aiModel = process.env.OPENROUTER_MODEL;
+        aiModel = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
+      } else if (aiProvider === 'claude' || aiProvider === 'anthropic') {
+        aiModel = process.env.ANTHROPIC_MODEL || 'claude-3-7-sonnet-20250219';
       } else if (aiProvider === 'openai') {
         aiModel = process.env.OPENAI_MODEL;
       } else {

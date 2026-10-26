@@ -18,8 +18,9 @@ class OpenRouterProvider {
     });
   }
 
-  async generateCompletion({ systemPrompt, userPrompt, model, temperature = 0.3, max_tokens = 4000 }) {
-    const selectedModel = model || process.env.OPENROUTER_MODEL || process.env.AI_MODEL || 'meta-llama/llama-4-maverick';
+  async generateCompletion({ systemPrompt, userPrompt, model, temperature = 0.3, max_tokens = 2500 }) {
+    const selectedModel = model || process.env.OPENROUTER_MODEL || process.env.AI_MODEL || 'anthropic/claude-haiku-4.5';
+    const tokenLimit = Number(process.env.OPENROUTER_MAX_TOKENS) || max_tokens || 2500;
 
     try {
       const response = await this.client.chat.completions.create({
@@ -29,7 +30,7 @@ class OpenRouterProvider {
           { role: 'user', content: userPrompt },
         ],
         temperature: temperature,
-        max_tokens: max_tokens,
+        max_tokens: tokenLimit,
         response_format: { type: 'json_object' },
       });
 

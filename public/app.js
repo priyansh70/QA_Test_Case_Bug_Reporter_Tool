@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="history-meta">${dateStr}</div>
           `;
-          div.addEventListener('click', () => loadHistoryItem(item.fileName));
+          div.addEventListener('click', () => loadHistoryItem(item.id || item.fileName));
           historyList.appendChild(div);
         });
       } else {

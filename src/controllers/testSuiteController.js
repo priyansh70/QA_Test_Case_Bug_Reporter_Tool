@@ -1,6 +1,6 @@
 const TestSuiteModel = require('../models/TestSuite');
 const { getWorkItem } = require('../azure/azureClient');
-const { generateTestCases } = require('../ai/testCaseGenerator');
+const { generateTestCases, repairAndParseJson } = require('../ai/testCaseGenerator');
 const { formatAiError } = require('../ai/providers/errorFormatter');
 
 function escapeHtml(str) {
@@ -50,11 +50,13 @@ class TestSuiteController {
       }
 
       const jsonString = await generateTestCases(targetWorkItem, { provider, model });
-      let parsedData = {};
-      try {
-        parsedData = JSON.parse(jsonString);
-      } catch (e) {
-        parsedData = { raw: jsonString };
+      let parsedData = repairAndParseJson(jsonString);
+      if (!parsedData) {
+        try {
+          parsedData = JSON.parse(jsonString);
+        } catch (e) {
+          parsedData = { raw: jsonString };
+        }
       }
 
       const suiteId = `suite_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -95,12 +97,12 @@ class TestSuiteController {
         let sectionsCount = 0;
         let totalTestCases = 0;
         try {
-          const json = JSON.parse(row.data_json);
+          const json = repairAndParseJson(row.data_json) || JSON.parse(row.data_json);
           if (Array.isArray(json.sections)) {
             sectionsCount = json.sections.length;
             totalTestCases = json.sections.reduce((acc, sec) => acc + (Array.isArray(sec.testCases) ? sec.testCases.length : 0), 0);
           }
-        } catch (e) {}
+        } catch (e) { }
 
         return {
           id: row.id,
@@ -128,11 +130,13 @@ class TestSuiteController {
         return res.status(404).json({ success: false, error: 'Test suite record not found in database.' });
       }
 
-      let parsedData = {};
-      try {
-        parsedData = JSON.parse(row.data_json);
-      } catch (e) {
-        parsedData = { raw: row.data_json };
+      let parsedData = repairAndParseJson(row.data_json);
+      if (!parsedData) {
+        try {
+          parsedData = JSON.parse(row.data_json);
+        } catch (e) {
+          parsedData = { raw: row.data_json };
+        }
       }
 
       return res.json({ success: true, data: parsedData, jsonString: row.data_json });
@@ -147,7 +151,7 @@ class TestSuiteController {
       const scripts = [];
       for (const row of rows) {
         try {
-          const json = JSON.parse(row.data_json);
+          const json = repairAndParseJson(row.data_json) || JSON.parse(row.data_json);
           if (Array.isArray(json.sections)) {
             json.sections.forEach((sec) => {
               if (Array.isArray(sec.testCases)) {
@@ -166,7 +170,7 @@ class TestSuiteController {
               }
             });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       return res.json({ success: true, scripts });
     } catch (error) {
@@ -184,11 +188,13 @@ class TestSuiteController {
         return res.status(404).send('<h1>Test suite not found</h1>');
       }
 
-      let data = {};
-      try {
-        data = JSON.parse(row.data_json);
-      } catch (e) {
-        data = {};
+      let data = repairAndParseJson(row.data_json);
+      if (!data) {
+        try {
+          data = JSON.parse(row.data_json);
+        } catch (e) {
+          data = {};
+        }
       }
       const sections = Array.isArray(data.sections) ? data.sections : [];
 

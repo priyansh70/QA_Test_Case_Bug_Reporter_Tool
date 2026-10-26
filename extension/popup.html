@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>QA Session Recorder</title>
+  <style>
+    body {
+      margin: 0;
+      width: 320px;
+      font: 13px/1.45 -apple-system, Segoe UI, Arial, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+    }
+
+    main {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #525252;
+    }
+
+    .recording .dot {
+      background: #10b981;
+    }
+
+    .warn .dot {
+      background: #f59e0b;
+    }
+
+    .bad .dot {
+      background: #ef4444;
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      font-size: 12px;
+    }
+
+    dt {
+      color: #a3a3a3;
+    }
+
+    dd {
+      margin: 0;
+      word-break: break-all;
+    }
+
+    .err {
+      color: #fca5a5;
+      font-size: 12px;
+    }
+
+    button {
+      font: inherit;
+      font-weight: 700;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #34d399;
+      outline-offset: 2px;
+    }
+
+    .primary {
+      background: #10b981;
+      color: #000;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .hint {
+      color: #a3a3a3;
+      font-size: 12px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>QA Session Recorder</h1>
+    <div id="status" class="status" role="status"><span class="dot"></span><span id="status-label">Not connected</span>
+    </div>
+    <dl id="details" hidden>
+      <dt>Session</dt>
+      <dd id="session-id"></dd>
+      <dt>Website</dt>
+      <dd id="target"></dd>
+      <dt>Queued</dt>
+      <dd id="queued"></dd>
+    </dl>
+    <p id="error" class="err" hidden></p>
+    <p id="hint" class="hint">Start a testing session from the QA platform dashboard. The extension connects
+      automatically.</p>
+    <button id="grant" class="primary" hidden>Grant website access &amp; start recording</button>
+    <button id="stop" class="danger" hidden>Stop session</button>
+  </main>
+  <script src="popup.js"></script>
+</body>
+
+</html>
