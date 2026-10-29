@@ -412,8 +412,15 @@ class TestingSessionController {
         return fail(res, 409, 'This bug has already been sent to Azure DevOps and can no longer be edited here.');
       }
 
-      const { title, report } = req.body || {};
+      const { title, report, assignedTo, parentWorkItemId } = req.body || {};
       const updates = {};
+      // Azure "Assigned To" (uniqueName/email) and parent user story id; empty string clears the choice.
+      if (assignedTo !== undefined) updates.assigned_to = String(assignedTo || '').trim().slice(0, 256) || null;
+      if (parentWorkItemId !== undefined) {
+        const parent = String(parentWorkItemId || '').trim();
+        if (parent && !/^\d+$/.test(parent)) return fail(res, 400, 'parentWorkItemId must be a work item id.');
+        updates.parent_work_item_id = parent || null;
+      }
       if (title !== undefined) {
         const clean = String(title).trim();
         if (!clean || clean.length > 200) return fail(res, 400, 'Title must be 1-200 characters.');
@@ -519,18 +526,31 @@ class TestingSessionController {
         const historyBugId = `bug_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const publicLink = `${req.protocol}://${req.get('host')}/bugs/public/${historyBugId}`;
         const evidence = `\n\nCaptured on: ${bug.page_url}\nPage title: ${bug.page_title || 'N/A'}\nCaptured at: ${bug.captured_at}\nTesting session: ${bug.session_id}\nPublic Bug Report Link: ${publicLink}`;
+        // Everything below is sent to Azure DevOps (see createBugWorkItem in azureClient.js for the field mapping).
         const result = await azureClient.createBugWorkItem(
           {
+            // report: title -> System.Title, severity -> Microsoft.VSTS.Common.Severity,
+            // description/stepsToReproduce/expectedResult/actualResult -> Microsoft.VSTS.TCM.ReproSteps (HTML)
             ...bug.report,
+            // Report description plus capture details (page URL/title, capture time, session id, public link)
             description: `${bug.report.description}${evidence}`,
+            // Session sprint -> System.IterationPath
             iterationPath: session?.azure_iteration_path || bug.azure_iteration_path,
+            // Chosen team member -> System.AssignedTo (omitted when unassigned)
+            assignedTo: bug.assigned_to || null,
+            // Chosen user story -> Hierarchy-Reverse relation (bug becomes a child of the story)
+            parentWorkItemId: bug.parent_work_item_id || null,
+            // Screenshot file -> uploaded and linked as AttachedFile relation
             attachment,
           },
+          // Org/PAT from the user profile; project comes from the testing session
           { ...azureConfig(req.user), project: session?.azure_project_name || bug.azure_project_name }
         );
         await BugModel.save({
           id: historyBugId,
           userId: req.user.id,
+          workItemId: bug.parent_work_item_id,
+          assignedTo: bug.assigned_to,
           title: bug.report.title,
           severity: bug.report.severity,
           description: bug.report.description,

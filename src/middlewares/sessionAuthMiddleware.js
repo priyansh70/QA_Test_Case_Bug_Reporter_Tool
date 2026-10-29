@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const TestingSessionModel = require('../models/TestingSession');
-const { verifyToken } = require('./authMiddleware');
+const { resolveUser } = require('./authMiddleware');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(String(token)).digest('hex');
@@ -24,7 +24,7 @@ async function requireSessionAccess(req, res, next) {
     const session = await TestingSessionModel.findById(req.params.id);
 
     const authHeader = req.headers.authorization || '';
-    const user = authHeader.startsWith('Bearer ') ? verifyToken(authHeader.split(' ')[1]) : null;
+    const user = authHeader.startsWith('Bearer ') ? await resolveUser(authHeader.split(' ')[1]) : null;
     if (user) {
       if (!session || session.user_id !== user.id) {
         return res.status(404).json({ success: false, error: 'Testing session not found.' });

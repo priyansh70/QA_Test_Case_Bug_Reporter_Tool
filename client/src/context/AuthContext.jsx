@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { parseApiResponse, friendlyNetworkError } from '../services/apiError';
-import { refreshAccessToken } from '../services/tokenManager';
+import { refreshAccessToken, getTokenExpiry } from '../services/tokenManager';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('qatk_token') || null);
-  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('qatk_refresh_token') || null);
+  const [token, setToken] = useState(() => localStorage.getItem('auth_token') || null);
+  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('auth_refresh_token') || null);
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('qatk_user');
+    const savedUser = localStorage.getItem('auth_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [loading, setLoading] = useState(true);
@@ -24,28 +24,41 @@ export function AuthProvider({ children }) {
 
     // Refresh 1 minute before expiry
     const refreshIn = Math.max(expiresAt - Date.now() - 60000, 5000);
-    refreshTimeoutRef.current = setTimeout(async () => {
-      const result = await refreshAccessToken();
-      if (result) {
-        setToken(result.token);
-        setRefreshToken(result.refreshToken);
-        if (result.user) {
-          setUser(result.user);
-          localStorage.setItem('qatk_user', JSON.stringify(result.user));
-        }
-        scheduleTokenRefresh(result.expiresAt);
-      }
-    }, refreshIn);
+    // The 'auth:token-refreshed' listener below updates state and reschedules.
+    refreshTimeoutRef.current = setTimeout(refreshAccessToken, refreshIn);
   }, []);
 
   const applySession = useCallback((data) => {
     setToken(data.token);
     setRefreshToken(data.refreshToken);
     setUser(data.user);
-    localStorage.setItem('qatk_token', data.token);
-    localStorage.setItem('qatk_refresh_token', data.refreshToken);
-    localStorage.setItem('qatk_user', JSON.stringify(data.user));
+    localStorage.setItem('auth_token', data.token);
+    localStorage.setItem('auth_refresh_token', data.refreshToken);
+    localStorage.setItem('auth_user', JSON.stringify(data.user));
     scheduleTokenRefresh(data.expiresAt);
+  }, [scheduleTokenRefresh]);
+
+  // Keep React state and the refresh timer in sync with every refresh (timer, 401 retry, tab wake-up)
+  useEffect(() => {
+    const handleRefreshed = (e) => {
+      const data = e.detail;
+      setToken(data.token);
+      setRefreshToken(data.refreshToken);
+      if (data.user) setUser(data.user);
+      scheduleTokenRefresh(data.expiresAt);
+    };
+    // Timers are throttled while a tab sleeps, so re-check expiry when it becomes visible again
+    const handleVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const exp = getTokenExpiry(localStorage.getItem('auth_token'));
+      if (exp && exp - Date.now() < 60000) refreshAccessToken();
+    };
+    window.addEventListener('auth:token-refreshed', handleRefreshed);
+    document.addEventListener('visibilitychange', handleVisible);
+    return () => {
+      window.removeEventListener('auth:token-refreshed', handleRefreshed);
+      document.removeEventListener('visibilitychange', handleVisible);
+    };
   }, [scheduleTokenRefresh]);
 
   // Listen for global session-expired events from api.js / tokenManager
@@ -61,7 +74,7 @@ export function AuthProvider({ children }) {
   // Verify stored token on initial mount
   useEffect(() => {
     const verifyStoredToken = async () => {
-      const storedToken = localStorage.getItem('qatk_token');
+      const storedToken = localStorage.getItem('auth_token');
       if (!storedToken) {
         setLoading(false);
         return;
@@ -78,6 +91,7 @@ export function AuthProvider({ children }) {
         if (data.success && data.user) {
           setUser(data.user);
           setToken(storedToken);
+          scheduleTokenRefresh(getTokenExpiry(storedToken));
         } else {
           // Token invalid or expired — try refresh
           const refreshed = await refreshAccessToken();
@@ -97,15 +111,15 @@ export function AuthProvider({ children }) {
     };
 
     verifyStoredToken();
-  }, []);
+  }, [scheduleTokenRefresh]);
 
   const logoutLocally = () => {
     setToken(null);
     setRefreshToken(null);
     setUser(null);
-    localStorage.removeItem('qatk_token');
-    localStorage.removeItem('qatk_refresh_token');
-    localStorage.removeItem('qatk_user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_refresh_token');
+    localStorage.removeItem('auth_user');
     try {
       sessionStorage.clear();
     } catch {}
@@ -158,7 +172,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    const currentRefreshToken = localStorage.getItem('qatk_refresh_token');
+    const currentRefreshToken = localStorage.getItem('auth_refresh_token');
     if (token) {
       try {
         await fetch('/api/auth/logout', {
@@ -213,7 +227,7 @@ export function AuthProvider({ children }) {
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
-    localStorage.setItem('qatk_user', JSON.stringify(updatedUser));
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
   };
 
   return (

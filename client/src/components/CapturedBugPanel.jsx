@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Sparkles, Save, Send, LoaderCircle, ExternalLink, TriangleAlert, CircleCheck, Trash2, Link as LinkIcon, Copy } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import SearchableSelect from './SearchableSelect';
 import {
+  fetchAzureUsers,
+  fetchAzureWorkItems,
   deleteCapturedBug,
   fetchCapturedBug,
   updateCapturedBug,
@@ -28,6 +31,9 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
   const [error, setError] = useState(null);
   const [shotUrl, setShotUrl] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [stories, setStories] = useState([]);
+  const [loadingLists, setLoadingLists] = useState(false);
 
   const apply = useCallback((b) => {
     setBug(b);
@@ -41,6 +47,22 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
       .then((d) => apply(d.bug))
       .catch((err) => setError(err.message));
   }, [bugId, apply]);
+
+  // Same project users / user stories sources as the normal bug log, scoped to the session's project.
+  const projectName = bug?.azure_project_name;
+  useEffect(() => {
+    if (!projectName) return;
+    setLoadingLists(true);
+    Promise.all([
+      fetchAzureUsers(projectName).catch(() => null),
+      fetchAzureWorkItems(projectName).catch(() => null),
+    ])
+      .then(([u, w]) => {
+        setUsers(u?.success && Array.isArray(u.users) ? u.users : []);
+        setStories(w?.success && Array.isArray(w.workItems) ? w.workItems : []);
+      })
+      .finally(() => setLoadingLists(false));
+  }, [projectName]);
 
   useEffect(() => {
     if (!bug?.screenshot_file) return undefined;
@@ -82,6 +104,17 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
   const hasReport = Boolean(report.title.trim() && report.description.trim());
 
   const saveTitle = () => run('title', () => updateCapturedBug(bugId, { title }), 'Bug title saved.');
+  // Saved on selection; only merges the two fields so unsaved report edits are not overwritten.
+  const saveLink = async (patch) => {
+    setError(null);
+    try {
+      const data = await updateCapturedBug(bugId, patch);
+      setBug((b) => ({ ...b, assigned_to: data.bug.assigned_to, parent_work_item_id: data.bug.parent_work_item_id }));
+    } catch (err) {
+      setError(err.message);
+      onShowToast(err.message);
+    }
+  };
   const saveReport = () => run('save', () => updateCapturedBug(bugId, { report }), 'Bug report saved.');
   const generate = async () => {
     if (title !== bug.title && !(await run('title', () => updateCapturedBug(bugId, { title })))) return;
@@ -161,6 +194,38 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <span className={`block text-[11px] font-semibold mb-1 ${t.muted}`}>Parent User Story</span>
+          <SearchableSelect
+            value={bug.parent_work_item_id || ''}
+            onChange={(val) => saveLink({ parentWorkItemId: val })}
+            disabled={locked || loadingLists}
+            placeholder="Search stories..."
+            options={[
+              { value: '', label: loadingLists ? 'Loading stories...' : 'No parent story' },
+              ...stories.map((s) => ({ value: String(s.id), label: `#${s.id} - ${s.title}` })),
+            ]}
+          />
+        </div>
+        <div>
+          <span className={`block text-[11px] font-semibold mb-1 ${t.muted}`}>Assign To</span>
+          <SearchableSelect
+            value={bug.assigned_to || ''}
+            onChange={(val) => saveLink({ assignedTo: val })}
+            disabled={locked || loadingLists}
+            placeholder="Select user to assign..."
+            options={[
+              { value: '', label: loadingLists ? 'Loading users...' : 'Unassigned' },
+              ...users.map((u) => ({
+                value: u.uniqueName || u.displayName,
+                label: `${u.displayName}${u.uniqueName ? ` (${u.uniqueName})` : ''}`,
+              })),
+            ]}
+          />
+        </div>
+      </div>
+
       <details className={`text-xs ${t.text}`}>
         <summary className={`cursor-pointer font-semibold ${t.muted}`}>Recent actions before capture ({(bug.recent_events || []).length})</summary>
         <ol className="mt-2 space-y-1 list-decimal pl-5">
@@ -194,7 +259,7 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
       )}
 
       <fieldset disabled={locked} className="space-y-3">
-        <legend className={`text-xs font-bold mb-2 ${t.text}`}>Bug report (editable)</legend>
+        <legend className={`text-xs font-bold mb-2 ${t.text}`}>Bug report</legend>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="sm:col-span-2">
             <label htmlFor="cb-r-title" className={`block text-[11px] font-semibold mb-1 ${t.muted}`}>Title</label>
@@ -275,7 +340,7 @@ export default function CapturedBugPanel({ t, bugId, provider, model, onBack, on
           {busy === 'delete' ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete bug
         </button>
       </div>
-      {!hasReport && !locked &&<p className={`text-[11px] ${t.muted}`}>Generate or write a report title and description before creating the Azure bug.</p>}
+      {!hasReport && !locked && <p className={`text-[11px] ${t.muted}`}>Generate or write a report title and description before creating the Azure bug.</p>}
       {bug.azure_status === 'failed' && bug.azure_error && (
         <p className="text-xs text-red-500 flex gap-1.5" role="alert">
           <TriangleAlert className="w-4 h-4 shrink-0" /> {bug.azure_error}

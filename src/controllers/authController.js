@@ -118,7 +118,7 @@ class AuthController {
         return res.status(401).json({ success: false, error: 'Invalid or expired refresh token. Please log in again.' });
       }
 
-      const session = rotateRefreshToken(refreshToken);
+      const session = await rotateRefreshToken(refreshToken);
       if (!session) {
         return res.status(401).json({ success: false, error: 'Session refresh failed. Please log in again.' });
       }

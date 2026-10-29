@@ -168,6 +168,19 @@
     outline: none;
     box-shadow: var(--focus-ring);
   }
+
+  /* Panels that replace per-component `isDark ? ... : ...` class ternaries */
+  .themed-panel {
+    background-color: var(--surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(24px);
+  }
+  .themed-brand-panel {
+    background-color: var(--brand-soft);
+    border: 1px solid var(--brand-border);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 /* Custom Scrollbars */

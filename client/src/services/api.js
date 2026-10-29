@@ -5,7 +5,7 @@ import { parseApiResponse, friendlyNetworkError } from './apiError';
 import { refreshAccessToken } from './tokenManager';
 
 export async function authFetch(url, options = {}) {
-  const token = localStorage.getItem('qatk_token');
+  const token = localStorage.getItem('auth_token');
   const headers = {
     ...options.headers,
   };
@@ -33,9 +33,9 @@ export async function authFetch(url, options = {}) {
       }
     } else {
       // Refresh failed — clear session and notify user
-      localStorage.removeItem('qatk_token');
-      localStorage.removeItem('qatk_refresh_token');
-      localStorage.removeItem('qatk_user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_refresh_token');
+      localStorage.removeItem('auth_user');
       // Dispatch global event so AuthContext can redirect to login
       window.dispatchEvent(new CustomEvent('auth:session-expired'));
       throw new Error('Your session has expired. Please log in again.');
@@ -182,8 +182,8 @@ export async function fetchCapturedBug(bugId) {
   return parseApiResponse(await authFetch(`/api/captured-bugs/${encodeURIComponent(bugId)}`));
 }
 
-export async function updateCapturedBug(bugId, { title, report }) {
-  return postJson(`/api/captured-bugs/${encodeURIComponent(bugId)}`, { title, report }, 'PATCH');
+export async function updateCapturedBug(bugId, { title, report, assignedTo, parentWorkItemId }) {
+  return postJson(`/api/captured-bugs/${encodeURIComponent(bugId)}`, { title, report, assignedTo, parentWorkItemId }, 'PATCH');
 }
 
 export async function generateCapturedBugReport(bugId, { provider, model } = {}) {

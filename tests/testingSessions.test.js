@@ -56,6 +56,10 @@ function ev(seq, extra = {}) {
 
 before(async () => {
   await initDatabase();
+  // Access JWTs carry no Azure PAT; the server loads it from the users collection.
+  await getDb().collection('users').insertMany(
+    [alice, bob].map(({ user }) => ({ id: user.id, username: user.username, azure_org: user.azureOrg, azure_pat: user.azurePat })),
+  );
   await new Promise((resolve) => {
     server = app.listen(0, resolve);
   });

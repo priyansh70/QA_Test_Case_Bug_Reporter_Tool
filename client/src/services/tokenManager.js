@@ -6,6 +6,16 @@
  * the request.
  */
 
+/** Expiry (ms epoch) read from the JWT `exp` claim, or null if the token is not a decodable JWT. */
+export function getTokenExpiry(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 let isRefreshing = false;
 let refreshSubscribers = [];
 
@@ -19,7 +29,7 @@ function notifyRefreshed(newToken) {
 }
 
 export async function performTokenRefresh() {
-  const storedRefreshToken = localStorage.getItem('qatk_refresh_token');
+  const storedRefreshToken = localStorage.getItem('auth_refresh_token');
   if (!storedRefreshToken) {
     return null;
   }
@@ -38,12 +48,13 @@ export async function performTokenRefresh() {
     }
 
     if (res.ok && data && data.success && data.token) {
-      localStorage.setItem('qatk_token', data.token);
-      localStorage.setItem('qatk_refresh_token', data.refreshToken);
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_refresh_token', data.refreshToken);
       if (data.user) {
-        localStorage.setItem('qatk_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
       }
       notifyRefreshed(data.token);
+      window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: data }));
       return data;
     }
     return null;

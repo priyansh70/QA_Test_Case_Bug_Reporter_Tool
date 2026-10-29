@@ -77,8 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const quickDemoAuthBtn = document.getElementById('quickDemoAuthBtn');
 
   // Auth & Application State
-  let authToken = localStorage.getItem('qatk_token') || null;
-  let currentUser = JSON.parse(localStorage.getItem('qatk_user') || 'null');
+  let authToken = localStorage.getItem('auth_token') || null;
+  let currentUser = JSON.parse(localStorage.getItem('auth_user') || 'null');
   let isLoginMode = true;
 
   let currentData = null;
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await safeParseJson(res);
         if (data.success && data.user) {
           currentUser = data.user;
-          localStorage.setItem('qatk_user', JSON.stringify(data.user));
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
           onAuthenticated();
           return;
         }
@@ -267,8 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success && data.token) {
         authToken = data.token;
         currentUser = data.user;
-        localStorage.setItem('qatk_token', data.token);
-        localStorage.setItem('qatk_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
         onAuthenticated();
       } else {
         authErrorAlert.textContent = sanitizeErrorMessage(data.error || 'Authentication failed.');
@@ -311,8 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
     authToken = null;
     currentUser = null;
     currentData = null;
-    localStorage.removeItem('qatk_token');
-    localStorage.removeItem('qatk_user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     try { sessionStorage.clear(); } catch {}
 
     // Reset workspace and forms to prevent previous user data leakage

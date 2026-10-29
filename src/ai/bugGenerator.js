@@ -21,19 +21,6 @@ function generateTemplateBugReport(bugTitle, storyContext = {}) {
 
   const scriptContext = (storyContext && storyContext.script) ? `\nRelated Test Case: ${storyContext.script}` : '';
 
-  // Testing-session bugs: use the recorded steps and do not invent an expected result.
-  if (Array.isArray(storyContext.recordedSteps) && storyContext.recordedSteps.length > 0) {
-    return {
-      title: cleanTitle,
-      severity,
-      description: `Defect observed: ${cleanTitle}.\n${storyContext.description || ''}`.trim(),
-      stepsToReproduce: storyContext.recordedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n'),
-      expectedResult: 'Not determinable from captured evidence - tester to confirm the expected behavior.',
-      actualResult: cleanTitle,
-      isTemplate: true,
-    };
-  }
-
   return {
     title: cleanTitle,
     severity,
@@ -62,22 +49,24 @@ The output JSON structure MUST match this exact format:
 {
   "title": "<Bug Title>",
   "severity": "1 - Critical | 2 - High | 3 - Medium | 4 - Low",
-  "description": "<Detailed clear summary of the defect and impact on end users.>",
+  "description": "<1-2 short sentences, max 30 words: what is wrong and its user impact.>",
   "stepsToReproduce": "1. Open app...\\n2. Perform action...\\n3. Observe behavior...",
-  "expectedResult": "<Clear description of expected behavior.>",
-  "actualResult": "<Clear description of actual failure.>"
-}`;
+  "expectedResult": "<One short sentence of expected behavior.>",
+  "actualResult": "<One short sentence of actual failure.>"
+}
+
+Keep the report brief. The description must stay under 30 words. stepsToReproduce must have at most 5 short steps (max 12 words each), and fewer when the bug title can be reproduced in fewer.`;
 
   const scriptText = storyContext.script ? `QA Test Script / Scenario: "${storyContext.script}"\n` : '';
   // Evidence recorded by the browser extension during a testing session (URL, page title, actions).
   const evidenceText = storyContext.recordedEvidence
     ? `\nRecorded Session Evidence:\n${storyContext.recordedEvidence}\n
-Rules for recorded evidence: build stepsToReproduce ONLY from the recorded actions above. Do not invent behavior.
-Write stepsToReproduce in plain, human language a tester would say (e.g. "Log in with valid credentials", "Open the Settings page and click Save").
-Merge related low-level actions (clicking a field, typing, submitting) into one meaningful step, drop noise such as repeated or irrelevant clicks, and never mention tags, selectors, element ids or raw event names.
-Keep the order and number each step on its own line.
-If the expected or actual result cannot be determined from the bug summary and evidence, write
-"Not determinable from captured evidence - tester to confirm: <what information is missing>" for that field.\n`
+Rules for stepsToReproduce:
+1. Use BOTH the bug summary and the recorded actions above.
+2. Read the bug summary first, then keep only the recorded actions that lead to that defect, in their original order. Remove everything unrelated to it (other pages, unrelated clicks, repeated actions, noise).
+3. Write the kept steps in plain language a tester would say (e.g. "Log in with valid credentials"), one per line, numbered. Never mention tags, selectors, element ids or raw event names.
+4. If no recorded action clearly relates to the bug summary, or the steps are still unclear, ignore the recorded actions and write the steps from the bug summary alone.
+Never write "Not determinable" or ask the tester to confirm anything. Write every field from the bug summary when the evidence does not help.\n`
     : '';
   const userPrompt = `Bug Summary: "${bugTitle}"
 ${scriptText}Parent Story Context (if available):
