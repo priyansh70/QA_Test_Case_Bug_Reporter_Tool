@@ -84,7 +84,7 @@ export default function Dashboard({ user }) {
   );
 
   const azureConfigured = Boolean(
-    (user?.azureOrg && user?.azurePat) || config?.configured,
+    (user?.azureOrg && user?.hasAzurePat) || config?.configured,
   );
 
   // Generate Test Cases. `editedFields` (optional) carries Review & Edit overrides
@@ -180,7 +180,7 @@ export default function Dashboard({ user }) {
         onOpenTestingSessions={() => setActiveModal("testingSessions")}
       />
 
-      {(!user?.azureOrg || !user?.azurePat) && (
+      {(!user?.azureOrg || !user?.hasAzurePat) && (
         <OnboardingBanner onConfigure={() => setActiveModal("profile")} />
       )}
 

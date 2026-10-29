@@ -7,6 +7,8 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
   try {
     await initDatabase();
+    const migrated = await require('./models/User').migrateLegacyPats();
+    if (migrated) console.log(`Re-encrypted ${migrated} Azure PAT(s) with ENCRYPTION_KEY.`);
     app.listen(PORT, () => {
       console.log(`\n====================================================`);
       console.log(`🚀 QA Test Suite Platform running at http://localhost:${PORT}`);

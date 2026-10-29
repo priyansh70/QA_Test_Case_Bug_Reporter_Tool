@@ -1,5 +1,8 @@
 const { getCollection } = require('../config/db');
-const { encryptToken, decryptToken } = require('../utils/cryptoUtils');
+const { encryptToken, decryptToken, reencryptIfLegacy } = require('../utils/cryptoUtils');
+
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const exactCI = (s) => new RegExp(`^${escapeRegex(s)}$`, 'i');
 
 function formatUserDoc(userDoc) {
   if (!userDoc) return null;
@@ -36,8 +39,8 @@ class UserModel {
     const col = UserModel.getCollection();
     const user = await col.findOne({
       $or: [
-        { username: new RegExp(`^${cleanId}$`, 'i') },
-        { email: new RegExp(`^${cleanId}$`, 'i') },
+        { username: exactCI(cleanId) },
+        { email: exactCI(cleanId) },
       ],
     });
     return formatUserDoc(user);
@@ -49,8 +52,8 @@ class UserModel {
     const col = UserModel.getCollection();
 
     const query = [];
-    if (cleanUsername) query.push({ username: new RegExp(`^${cleanUsername}$`, 'i') });
-    if (cleanEmail) query.push({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+    if (cleanUsername) query.push({ username: exactCI(cleanUsername) });
+    if (cleanEmail) query.push({ email: exactCI(cleanEmail) });
     if (query.length === 0) return null;
 
     const user = await col.findOne({ $or: query });
@@ -76,6 +79,7 @@ class UserModel {
       role: userDoc.role || 'user',
       hash: userDoc.hash,
       salt: userDoc.salt,
+      hash_algo: userDoc.hash_algo || null,
       azure_org: userDoc.azure_org || userDoc.azureOrg || null,
       azure_pat: encryptedPat,
       created_at: userDoc.created_at || now,
@@ -92,24 +96,44 @@ class UserModel {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanOrg = (azureOrg || '').trim() || null;
     const cleanPat = (azurePat || '').trim() || null;
-    const encryptedPat = cleanPat ? encryptToken(cleanPat) : null;
     const now = new Date().toISOString();
 
+    const set = {
+      name: cleanName,
+      email: cleanEmail || null,
+      azure_org: cleanOrg,
+      updated_at: now,
+    };
+    // The PAT is never sent to the browser, so a blank field means "keep the stored one".
+    if (cleanPat) set.azure_pat = encryptToken(cleanPat);
+
+    const col = UserModel.getCollection();
+    await col.updateOne({ id: userId }, { $set: set });
+
+    return UserModel.findById(userId);
+  }
+
+  static async updatePassword(userId, hash, salt) {
     const col = UserModel.getCollection();
     await col.updateOne(
       { id: userId },
-      {
-        $set: {
-          name: cleanName,
-          email: cleanEmail || null,
-          azure_org: cleanOrg,
-          azure_pat: encryptedPat,
-          updated_at: now,
-        },
-      }
+      { $set: { hash, salt, hash_algo: 'scrypt', updated_at: new Date().toISOString() } }
     );
+  }
 
-    return UserModel.findById(userId);
+  /** Re-encrypt PATs still stored under the legacy default key. */
+  static async migrateLegacyPats() {
+    const col = UserModel.getCollection();
+    const users = await col.find({ azure_pat: /^enc:/ }, { projection: { id: 1, azure_pat: 1 } }).toArray();
+    let migrated = 0;
+    for (const u of users) {
+      const next = reencryptIfLegacy(u.azure_pat);
+      if (next) {
+        await col.updateOne({ id: u.id }, { $set: { azure_pat: next } });
+        migrated += 1;
+      }
+    }
+    return migrated;
   }
 }
 

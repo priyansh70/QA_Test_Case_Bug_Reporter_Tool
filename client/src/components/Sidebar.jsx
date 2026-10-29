@@ -48,7 +48,7 @@ export default function Sidebar({
     if (inputMode === 'dropdown') {
       fetchProjects();
     }
-  }, [inputMode, user?.azurePat, user?.azureOrg]);
+  }, [inputMode, user?.hasAzurePat, user?.azureOrg]);
 
   const fetchProjects = async () => {
     setLoadingProjects(true);

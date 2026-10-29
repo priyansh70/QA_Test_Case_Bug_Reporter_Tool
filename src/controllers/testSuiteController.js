@@ -2,6 +2,7 @@ const TestSuiteModel = require('../models/TestSuite');
 const { getWorkItem } = require('../azure/azureClient');
 const { generateTestCases, repairAndParseJson } = require('../ai/testCaseGenerator');
 const { formatAiError } = require('../ai/providers/errorFormatter');
+const { newId, publicUrl } = require('../utils/publicLinks');
 
 function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, (c) => ({
@@ -59,9 +60,9 @@ class TestSuiteController {
         }
       }
 
-      const suiteId = `suite_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const suiteId = newId('suite');
       const fileName = `test-cases-${targetWorkItem.id}.json`;
-      const publicLink = `${req.protocol}://${req.get('host')}/test-suites/public/${suiteId}`;
+      const publicLink = publicUrl(req, `/test-suites/public/${suiteId}`);
 
       await TestSuiteModel.save({
         id: suiteId,
@@ -117,7 +118,8 @@ class TestSuiteController {
 
       return res.json({ success: true, history });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      console.error('Get history error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to load history.' });
     }
   }
 
@@ -141,7 +143,8 @@ class TestSuiteController {
 
       return res.json({ success: true, data: parsedData, jsonString: row.data_json });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      console.error('Get history item error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to load history item.' });
     }
   }
 
@@ -174,7 +177,8 @@ class TestSuiteController {
       }
       return res.json({ success: true, scripts });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      console.error('Get scripts error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to load scripts.' });
     }
   }
 
@@ -187,6 +191,8 @@ class TestSuiteController {
       if (!row) {
         return res.status(404).send('<h1>Test suite not found</h1>');
       }
+
+      res.set('X-Robots-Tag', 'noindex, nofollow');
 
       let data = repairAndParseJson(row.data_json);
       if (!data) {

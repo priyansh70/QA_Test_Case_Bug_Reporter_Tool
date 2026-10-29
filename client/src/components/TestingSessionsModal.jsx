@@ -14,7 +14,7 @@ import {
   deleteTestingSession,
 } from '../services/api';
 
-const DEFAULT_URL = 'https://example.com';
+const DEFAULT_URL = '';
 const DEFAULT_PROJECT_NAME = 'SMS Plus';
 
 function themeClasses(isDark) {
@@ -141,7 +141,7 @@ function NewSessionForm({ t, onCreated, onCancel, onShowToast }) {
           type="url"
           value={websiteUrl}
           onChange={(e) => setWebsiteUrl(e.target.value)}
-          placeholder={DEFAULT_URL}
+          placeholder="www.example.com"
           aria-invalid={Boolean(errors.websiteUrl)}
           className={`w-full px-3 py-2 text-xs rounded-xl border outline-none focus:border-emerald-500 ${t.input}`}
         />

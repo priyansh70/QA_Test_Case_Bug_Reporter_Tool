@@ -79,6 +79,7 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
   const [publishing, setPublishing] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [error, setError] = useState(null);
+  const [mediaError, setMediaError] = useState(null);
 
   // Review & Edit Mode Form States (All editable!)
   const [reviewTitle, setReviewTitle] = useState('');
@@ -353,6 +354,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
     setIsReviewMode(true);
   };
 
+  // Media URL validation errors belong under the field, not in the top banner
+  const showPublishError = (msg) => (/media url/i.test(msg) ? setMediaError(msg) : setError(msg));
+
   // Publish bug to Azure DevOps
   const handlePublishBug = async () => {
     if (!reviewTitle.trim()) {
@@ -362,6 +366,7 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
 
     setPublishing(true);
     setError(null);
+    setMediaError(null);
 
     const activeAttachment = reviewAttachedFile || attachedFile;
     const activeMediaUrl = reviewMediaUrl || mediaUrl;
@@ -398,10 +403,10 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
         resetForm();
         onClose();
       } else {
-        setError(sanitizeUserErrorMessage(data.error || 'Failed to publish bug.'));
+        showPublishError(sanitizeUserErrorMessage(data.error || 'Failed to publish bug.'));
       }
     } catch (err) {
-      setError(sanitizeUserErrorMessage(err.message || 'Error publishing bug.'));
+      showPublishError(sanitizeUserErrorMessage(err.message || 'Error publishing bug.'));
     } finally {
       setPublishing(false);
     }
@@ -411,6 +416,7 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
     setBugTitle('');
     setIsReviewMode(false);
     setError(null);
+    setMediaError(null);
     setSelectedScriptId('');
     setAssignedTo('');
     setMediaUrl('');
@@ -747,9 +753,9 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                             <input
                               type="url"
                               value={mediaUrl}
-                              onChange={(e) => setMediaUrl(e.target.value)}
+                              onChange={(e) => { setMediaUrl(e.target.value); setMediaError(null); }}
                               placeholder="e.g. https://www.loom.com/share/... or https://youtu.be/... or image URL"
-                              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${isDark
+                              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${mediaError ? 'border-red-500' : ''} ${isDark
                                 ? 'bg-black border-zinc-800 text-zinc-100 placeholder-zinc-600'
                                 : 'bg-[var(--surface)] border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-disabled)]'
                                 }`}
@@ -760,6 +766,13 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                             Supports Loom recordings, YouTube demos, S3/CDN media, or hosted screenshot URLs.
                           </p>
                         </div>
+                      )}
+                      {/* Outside the tab switch so it shows whichever tab is active */}
+                      {mediaError && (
+                        <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-[11px] text-red-500">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{mediaError}</span>
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1058,15 +1071,16 @@ export default function BugReporterModal({ isOpen, onClose, selectedProject, sel
                         <input
                           type="url"
                           value={reviewMediaUrl}
-                          onChange={(e) => setReviewMediaUrl(e.target.value)}
+                          onChange={(e) => { setReviewMediaUrl(e.target.value); setMediaError(null); }}
                           placeholder="Video URL (Loom, YouTube, CDN)..."
-                          className={`w-full pl-8 pr-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-emerald-500 ${isDark
+                          className={`w-full pl-8 pr-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-emerald-500 ${mediaError ? 'border-red-500' : ''} ${isDark
                             ? 'bg-zinc-950 border-zinc-800 text-zinc-100 placeholder-zinc-600'
                             : 'bg-white border-zinc-200 text-black placeholder-zinc-400'
                             }`}
                         />
                         <LinkIcon className={`w-3.5 h-3.5 absolute left-2.5 top-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
                       </div>
+                      {mediaError && <p role="alert" className="mt-1.5 text-[11px] text-red-500">{mediaError}</p>}
                     </div>
                   </div>
 

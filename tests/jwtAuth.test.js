@@ -13,9 +13,16 @@ test('access token is a JWT without the PAT and verifies', () => {
   assert.strictEqual(auth.verifyToken(s.accessToken + 'x'), null);
 });
 
-test('refresh token verifies, and logout revokes it', () => {
+test('refresh token verifies, and logout revokes it', async () => {
   const s = auth.createSession(user);
-  assert.ok(auth.verifyRefreshToken(s.refreshToken));
-  auth.revokeRefreshToken(s.refreshToken);
-  assert.strictEqual(auth.verifyRefreshToken(s.refreshToken), null);
+  assert.ok(await auth.verifyRefreshToken(s.refreshToken));
+  await auth.revokeRefreshToken(s.refreshToken);
+  assert.strictEqual(await auth.verifyRefreshToken(s.refreshToken), null);
+});
+
+test('logout revokes the access token too', async () => {
+  const s = auth.createSession(user);
+  assert.ok(await auth.resolveUser(s.accessToken));
+  await auth.revokeToken(s.accessToken);
+  assert.strictEqual(await auth.resolveUser(s.accessToken), null);
 });

@@ -23,7 +23,7 @@ export default function ProfileModal({ isOpen, onClose, onShowToast }) {
       setName(user.name || "");
       setEmail(user.email || "");
       setAzureOrg(user.azureOrg || "");
-      setAzurePat(user.azurePat || "");
+      setAzurePat("");
       setError(null);
       setFieldErrors({ name: "", email: "" });
     }
@@ -308,7 +308,11 @@ export default function ProfileModal({ isOpen, onClose, onShowToast }) {
                     type="password"
                     value={azurePat}
                     onChange={(e) => setAzurePat(e.target.value)}
-                    placeholder="••••••••••••••••••••••••••••••••"
+                    placeholder={
+                      user?.hasAzurePat
+                        ? "Saved. Leave blank to keep the current PAT"
+                        : "••••••••••••••••••••••••••••••••"
+                    }
                     className={`w-full px-3.5 py-2.5 border rounded-xl text-xs transition-all focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
                       isDark
                         ? "bg-black border-zinc-800 text-zinc-100 placeholder-zinc-600"

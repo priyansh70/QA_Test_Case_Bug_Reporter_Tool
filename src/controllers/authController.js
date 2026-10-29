@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { promisify } = require('util');
 const UserModel = require('../models/User');
 const {
   createSession,
@@ -7,14 +8,30 @@ const {
   revokeToken,
   revokeRefreshToken,
   updateSessionUser,
+  toPublicUser,
 } = require('../middlewares/authMiddleware');
 
-function hashPassword(password, salt) {
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128; // bounds the cost of a single hash
+
+const scrypt = promisify(crypto.scrypt);
+
+// Accounts created before scrypt carry no hash_algo and were hashed with PBKDF2 at 1000 iterations;
+// they are verified the old way and upgraded on their next successful login.
+async function hashPassword(password, salt, legacy = false) {
   if (!salt) {
     salt = crypto.randomBytes(16).toString('hex');
   }
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return { hash, salt };
+  const derived = legacy
+    ? await promisify(crypto.pbkdf2)(password, salt, 1000, 64, 'sha512')
+    : await scrypt(password, salt, 64);
+  return { hash: derived.toString('hex'), salt };
+}
+
+function hashesMatch(a, b) {
+  const x = Buffer.from(String(a), 'hex');
+  const y = Buffer.from(String(b), 'hex');
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
 class AuthController {
@@ -24,17 +41,26 @@ class AuthController {
       if (!username || !password) {
         return res.status(400).json({ success: false, error: 'Username/Email and password are required.' });
       }
+      if (typeof username !== 'string' || typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH) {
+        return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+      }
 
-      const cleanId = (username || '').trim().toLowerCase();
+      const cleanId = username.trim().toLowerCase();
       const user = await UserModel.findByIdentifier(cleanId);
 
       if (!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password.' });
       }
 
-      const { hash } = hashPassword(password, user.salt);
-      if (hash !== user.hash) {
+      const legacy = user.hash_algo !== 'scrypt';
+      const { hash } = await hashPassword(password, user.salt, legacy);
+      if (!hashesMatch(hash, user.hash)) {
         return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+      }
+
+      if (legacy) {
+        const upgraded = await hashPassword(password);
+        await UserModel.updatePassword(user.id, upgraded.hash, upgraded.salt);
       }
 
       const session = createSession(user);
@@ -42,7 +68,7 @@ class AuthController {
         success: true,
         token: session.accessToken,
         refreshToken: session.refreshToken,
-        user: session.user,
+        user: toPublicUser(session.user),
         expiresAt: session.accessExpiresAt,
         refreshExpiresAt: session.refreshExpiresAt,
       });
@@ -58,6 +84,15 @@ class AuthController {
 
       if (!email || !password) {
         return res.status(400).json({ success: false, error: 'Email address and password are required for registration.' });
+      }
+      if (typeof email !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ success: false, error: 'Email address and password must be text.' });
+      }
+      if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
+        return res.status(400).json({
+          success: false,
+          error: `Password must be between ${MIN_PASSWORD_LENGTH} and ${MAX_PASSWORD_LENGTH} characters.`,
+        });
       }
 
       const cleanEmail = (email || '').trim().toLowerCase();
@@ -76,7 +111,7 @@ class AuthController {
         return res.status(400).json({ success: false, error: 'An account with this email address already exists.' });
       }
 
-      const { hash, salt } = hashPassword(password);
+      const { hash, salt } = await hashPassword(password);
       const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
       const newUserDoc = await UserModel.create({
@@ -87,6 +122,7 @@ class AuthController {
         role: 'user',
         hash,
         salt,
+        hash_algo: 'scrypt',
         azure_org: cleanOrg,
         azure_pat: cleanPat,
       });
@@ -96,7 +132,7 @@ class AuthController {
         success: true,
         token: session.accessToken,
         refreshToken: session.refreshToken,
-        user: session.user,
+        user: toPublicUser(session.user),
         expiresAt: session.accessExpiresAt,
         refreshExpiresAt: session.refreshExpiresAt,
       });
@@ -113,7 +149,7 @@ class AuthController {
         return res.status(400).json({ success: false, error: 'Refresh token is required.' });
       }
 
-      const record = verifyRefreshToken(refreshToken);
+      const record = await verifyRefreshToken(refreshToken);
       if (!record) {
         return res.status(401).json({ success: false, error: 'Invalid or expired refresh token. Please log in again.' });
       }
@@ -127,7 +163,7 @@ class AuthController {
         success: true,
         token: session.accessToken,
         refreshToken: session.refreshToken,
-        user: session.user,
+        user: toPublicUser(session.user),
         expiresAt: session.accessExpiresAt,
         refreshExpiresAt: session.refreshExpiresAt,
       });
@@ -138,16 +174,16 @@ class AuthController {
   }
 
   static async logout(req, res) {
-    revokeToken(req.token);
+    await revokeToken(req.token);
     const { refreshToken } = req.body;
     if (refreshToken) {
-      revokeRefreshToken(refreshToken);
+      await revokeRefreshToken(refreshToken);
     }
     return res.json({ success: true, message: 'Logged out successfully.' });
   }
 
   static async getMe(req, res) {
-    return res.json({ success: true, user: req.user });
+    return res.json({ success: true, user: toPublicUser(req.user) });
   }
 
   static async updateProfile(req, res) {
@@ -158,20 +194,13 @@ class AuthController {
 
       const updatedUserDoc = await UserModel.updateProfile(req.user.id, { name, email, azureOrg, azurePat });
 
-      const safeUser = {
-        id: updatedUserDoc.id,
-        username: updatedUserDoc.username,
-        email: updatedUserDoc.email,
-        name: updatedUserDoc.name,
-        role: updatedUserDoc.role,
-        azureOrg: updatedUserDoc.azure_org || updatedUserDoc.azureOrg,
-        azurePat: updatedUserDoc.azure_pat || updatedUserDoc.azurePat,
-      };
+      const safeUser = toPublicUser(updatedUserDoc);
 
       updateSessionUser(req.user.id, safeUser);
       return res.json({ success: true, user: safeUser });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message || 'Failed to update profile.' });
+      console.error('Update profile error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to update profile.' });
     }
   }
 }

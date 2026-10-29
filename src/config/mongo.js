@@ -64,6 +64,11 @@ async function initMongoIndexes() {
     const eventsCol = db.collection('session_events');
     await eventsCol.createIndex({ session_id: 1, seq: 1 }, { unique: true });
 
+    // Revoked/used JWT ids; the TTL index drops each row once the token would have expired anyway.
+    const revokedCol = db.collection('revoked_tokens');
+    await revokedCol.createIndex({ jti: 1 }, { unique: true });
+    await revokedCol.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+
     const capturedCol = db.collection('captured_bugs');
     await capturedCol.createIndex({ id: 1 }, { unique: true });
     await capturedCol.createIndex({ session_id: 1, client_bug_id: 1 }, { unique: true });

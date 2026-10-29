@@ -83,7 +83,7 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadFile, onShowToast
                 </div>
               ) : historyItems.length === 0 ? (
                 <div className={`text-center py-12 text-xs ${isDark ? 'text-zinc-500' : 'text-[var(--text-disabled)]'}`}>
-                  No historical JSON test suites found.
+                  No test suites found.
                 </div>
               ) : (
                 historyItems.map((item, idx) => (

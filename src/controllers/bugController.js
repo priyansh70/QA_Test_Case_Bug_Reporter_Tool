@@ -2,6 +2,7 @@ const BugModel = require('../models/Bug');
 const { generateBugReport } = require('../ai/bugGenerator');
 const { createBugWorkItem } = require('../azure/azureClient');
 const { formatAiError } = require('../ai/providers/errorFormatter');
+const { newId, publicUrl, safeHttpUrl } = require('../utils/publicLinks');
 
 function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, (c) => ({
@@ -30,7 +31,8 @@ class BugController {
       const rows = await BugModel.findByUser(req.user.id);
       return res.json({ success: true, bugs: rows });
     } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      console.error('Get bugs error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to load bug history.' });
     }
   }
 
@@ -57,10 +59,15 @@ class BugController {
       const targetAttachment = attachment || bugReport.attachment || null;
       const targetIteration = iterationPath || bugReport.iterationPath || null;
 
+      // Shown as a clickable link on the public page, so only http(s) URLs are accepted.
+      if (targetMediaUrl && !safeHttpUrl(targetMediaUrl)) {
+        return res.status(400).json({ success: false, error: 'Media URL must start with http:// or https://.' });
+      }
+
       // Generate the bug ID and its public shareable link up front so the link
       // can be embedded into the Azure DevOps description before the work item is created.
-      const bugId = `bug_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const publicLink = `${req.protocol}://${req.get('host')}/bugs/public/${bugId}`;
+      const bugId = newId('bug');
+      const publicLink = publicUrl(req, `/bugs/public/${bugId}`);
       const descriptionWithLink = `${bugReport.description || ''}\n\nPublic Bug Report Link: ${publicLink}`;
 
       let azureResult = null;
@@ -125,8 +132,12 @@ class BugController {
         return res.status(404).send('<h1>Bug report not found</h1>');
       }
 
-      const azureUrl = bug.azure_url || bug.azureUrl || '';
+      // Re-validated at render time so rows stored before the publish-time check cannot inject javascript: links.
+      const azureUrl = safeHttpUrl(bug.azure_url || bug.azureUrl) || '';
+      const mediaUrl = safeHttpUrl(bug.media_url) || '';
       const azureBugId = bug.azure_bug_id || bug.azureBugId || '';
+
+      res.set('X-Robots-Tag', 'noindex, nofollow');
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -156,8 +167,8 @@ class BugController {
     <section><h3>Steps to Reproduce</h3><pre>${escapeHtml(bug.steps_to_reproduce)}</pre></section>
     <section><h3>Expected Result</h3><p>${escapeHtml(bug.expected_result)}</p></section>
     <section><h3>Actual Result</h3><p>${escapeHtml(bug.actual_result)}</p></section>
-    ${bug.media_url ? `<section><h3>Media Evidence</h3><p><a href="${escapeHtml(bug.media_url)}" target="_blank">${escapeHtml(bug.media_url)}</a></p></section>` : ''}
-    ${azureUrl ? `<section><h3>Azure DevOps Work Item</h3><p><a href="${escapeHtml(azureUrl)}" target="_blank">${escapeHtml(azureUrl)}</a></p></section>` : ''}
+    ${mediaUrl ? `<section><h3>Media Evidence</h3><p><a href="${escapeHtml(mediaUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(mediaUrl)}</a></p></section>` : ''}
+    ${azureUrl ? `<section><h3>Azure DevOps Work Item</h3><p><a href="${escapeHtml(azureUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(azureUrl)}</a></p></section>` : ''}
   </div>
 </body>
 </html>`;

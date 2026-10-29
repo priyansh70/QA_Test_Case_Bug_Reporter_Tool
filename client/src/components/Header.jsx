@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 export default function Header({ config, sidebarOpen, onToggleSidebar, onOpenHistory, onOpenProfile, onOpenBugLogger, onOpenBugHistory, onOpenTestingSessions }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
-  const isConnected = config?.configured || (user?.azureOrg && user?.azurePat);
+  const isConnected = config?.configured || (user?.azureOrg && user?.hasAzurePat);
 
   const getInitials = (name) => {
     if (!name) return 'U';

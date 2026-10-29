@@ -34,8 +34,20 @@ function resolveConfig(customConfig = {}) {
       "Missing Azure DevOps PAT credentials. Please add your Azure Organization Name and Personal Access Token (PAT) in your Profile Settings.",
     );
   }
+  // The org is placed in the URL path, so only plain organization-name characters are allowed.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(org)) {
+    throw new Error("Invalid Azure DevOps organization name. Please check your Profile Settings.");
+  }
 
   return { org, project, pat };
+}
+
+/** Work item ids are numeric; anything else would alter the request path. */
+function assertWorkItemId(id) {
+  if (!/^\d{1,12}$/.test(String(id))) {
+    throw new Error(`Invalid Azure DevOps Work Item ID: "${String(id).slice(0, 30)}".`);
+  }
+  return String(id);
 }
 
 /**
@@ -45,8 +57,9 @@ async function getWorkItem(workItemId, customConfig = {}) {
   const { org, project, pat } = resolveConfig(customConfig);
   const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
 
+  assertWorkItemId(workItemId);
   const url = project
-    ? `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/${workItemId}?api-version=7.0&$expand=all`
+    ? `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/workitems/${workItemId}?api-version=7.0&$expand=all`
     : `https://dev.azure.com/${org}/_apis/wit/workitems/${workItemId}?api-version=7.0&$expand=all`;
 
   try {
@@ -141,11 +154,11 @@ async function getProjects(customConfig = {}) {
 async function getProjectWorkItems(projectName, customConfig = {}) {
   const { org, pat } = resolveConfig({ ...customConfig, project: projectName });
   const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
-  const wiqlUrl = `https://dev.azure.com/${org}/${projectName}/_apis/wit/wiql?api-version=7.0`;
+  const wiqlUrl = `https://dev.azure.com/${org}/${encodeURIComponent(projectName)}/_apis/wit/wiql?api-version=7.0`;
 
-  const query = `SELECT [System.Id], [System.Title], [System.WorkItemType], [System.State] 
-                 FROM WorkItems 
-                 WHERE [System.TeamProject] = '${projectName}' 
+  const query = `SELECT [System.Id], [System.Title], [System.WorkItemType], [System.State]
+                 FROM WorkItems
+                 WHERE [System.TeamProject] = '${String(projectName).replace(/'/g, "''")}'
                  AND [System.WorkItemType] IN ('User Story', 'Product Backlog Item')
                  ORDER BY [System.ChangedDate] DESC`;
 
@@ -170,7 +183,7 @@ async function getProjectWorkItems(projectName, customConfig = {}) {
     }
 
     const ids = workItemRefs.map((w) => w.id).join(",");
-    const detailsUrl = `https://dev.azure.com/${org}/${projectName}/_apis/wit/workitems?ids=${ids}&fields=System.Id,System.Title,System.WorkItemType,System.State&api-version=7.0`;
+    const detailsUrl = `https://dev.azure.com/${org}/${encodeURIComponent(projectName)}/_apis/wit/workitems?ids=${ids}&fields=System.Id,System.Title,System.WorkItemType,System.State&api-version=7.0`;
 
     const detailsRes = await axios.get(detailsUrl, {
       headers: { Authorization: authHeader },
@@ -369,7 +382,7 @@ async function createBugWorkItem(bugData, customConfig = {}) {
       path: "/relations/-",
       value: {
         rel: "System.LinkTypes.Hierarchy-Reverse",
-        url: `https://dev.azure.com/${org}/_apis/wit/workitems/${parentId}`,
+        url: `https://dev.azure.com/${org}/_apis/wit/workitems/${assertWorkItemId(parentId)}`,
       },
     });
   }
@@ -434,7 +447,7 @@ async function createBugWorkItem(bugData, customConfig = {}) {
       id: response.data.id,
       url:
         response.data._links?.html?.href ||
-        `https://dev.azure.com/${org}/${project}/_workitems/edit/${response.data.id}`,
+        `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_workitems/edit/${response.data.id}`,
     };
   } catch (error) {
     const details = error.response?.data?.message || error.message;
@@ -449,8 +462,9 @@ async function updateWorkItem(workItemId, fields = {}, customConfig = {}) {
   const { org, project, pat } = resolveConfig(customConfig);
   const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
 
+  assertWorkItemId(workItemId);
   const url = project
-    ? `https://dev.azure.com/${org}/${project}/_apis/wit/workitems/${workItemId}?api-version=7.0`
+    ? `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/workitems/${workItemId}?api-version=7.0`
     : `https://dev.azure.com/${org}/_apis/wit/workitems/${workItemId}?api-version=7.0`;
 
   const toHtml = (text) =>
@@ -509,7 +523,7 @@ async function getProjectIterations(projectName, customConfig = {}) {
   const authHeader = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
 
   try {
-    const teamUrl = `https://dev.azure.com/${org}/${projectName}/_apis/work/teamsettings/iterations?api-version=7.0`;
+    const teamUrl = `https://dev.azure.com/${org}/${encodeURIComponent(projectName)}/_apis/work/teamsettings/iterations?api-version=7.0`;
     const response = await axios.get(teamUrl, {
       headers: { Authorization: authHeader },
     });
@@ -526,7 +540,7 @@ async function getProjectIterations(projectName, customConfig = {}) {
   }
 
   try {
-    const nodesUrl = `https://dev.azure.com/${org}/${projectName}/_apis/wit/classificationnodes/Iterations?$depth=2&api-version=7.0`;
+    const nodesUrl = `https://dev.azure.com/${org}/${encodeURIComponent(projectName)}/_apis/wit/classificationnodes/Iterations?$depth=2&api-version=7.0`;
     const response = await axios.get(nodesUrl, {
       headers: { Authorization: authHeader },
     });

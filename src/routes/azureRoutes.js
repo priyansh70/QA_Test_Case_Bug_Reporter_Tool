@@ -10,8 +10,5 @@ router.get('/azure/work-items', requireAuth, AzureController.getWorkItems);
 router.get('/azure/iterations', requireAuth, AzureController.getIterations);
 router.get('/azure/work-item/:id', requireAuth, AzureController.getWorkItemById);
 router.patch('/azure/work-item/:id', requireAuth, AzureController.updateWorkItem);
-router.get('/azure/workitem/:id', requireAuth, AzureController.getWorkItemById);
-router.get('/work-item/:id', requireAuth, AzureController.getWorkItemById);
-router.get('/workitem/:id', requireAuth, AzureController.getWorkItemById);
 
 module.exports = router;

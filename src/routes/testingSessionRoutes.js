@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TestingSessionController = require('../controllers/testingSessionController');
 const { requireAuth } = require('../middlewares/authMiddleware');
+const { generateLimiter, validateAiOptions } = require('../middlewares/securityMiddleware');
 const { requireSessionAccess } = require('../middlewares/sessionAuthMiddleware');
 
 // Owner-only (React dashboard)
@@ -24,7 +25,7 @@ router.get('/captured-bugs/:bugId', requireAuth, TestingSessionController.getBug
 router.patch('/captured-bugs/:bugId', requireAuth, TestingSessionController.updateBug);
 router.delete('/captured-bugs/:bugId', requireAuth, TestingSessionController.deleteBug);
 router.get('/captured-bugs/:bugId/screenshot', requireAuth, TestingSessionController.getScreenshot);
-router.post('/captured-bugs/:bugId/generate', requireAuth, TestingSessionController.generateReport);
+router.post('/captured-bugs/:bugId/generate', requireAuth, generateLimiter, validateAiOptions, TestingSessionController.generateReport);
 router.post('/captured-bugs/:bugId/create-azure-bug', requireAuth, TestingSessionController.createAzureBug);
 
 module.exports = router;

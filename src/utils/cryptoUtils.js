@@ -1,13 +1,27 @@
 const crypto = require('crypto');
 
-// Derive 32-byte key from environment secret or fallback key
-const SECRET_KEY = crypto
-  .createHash('sha256')
-  .update(process.env.ENCRYPTION_KEY || process.env.AZURE_PAT_SECRET || 'qa-testcase-generator-secret-key-2026')
-  .digest();
+const deriveKey = (secret) => crypto.createHash('sha256').update(secret).digest();
+
+// Old default key, public in the repo. Kept only to decrypt PATs stored before ENCRYPTION_KEY was required.
+const LEGACY_KEY = deriveKey('qa-testcase-generator-secret-key-2026');
+
+const configuredSecret = process.env.ENCRYPTION_KEY || process.env.AZURE_PAT_SECRET;
+if (!configuredSecret && process.env.NODE_ENV === 'production') {
+  throw new Error('ENCRYPTION_KEY must be set in production to encrypt Azure PATs.');
+}
+if (!configuredSecret) {
+  console.warn('ENCRYPTION_KEY is not set; Azure PATs are encrypted with a publicly known key. Set ENCRYPTION_KEY.');
+}
+const SECRET_KEY = configuredSecret ? deriveKey(configuredSecret) : LEGACY_KEY;
 
 const ALGORITHM = 'aes-256-gcm';
 const PREFIX = 'enc:';
+
+function decryptWith(key, ivHex, authTagHex, encryptedHex) {
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+  return decipher.update(encryptedHex, 'hex', 'utf8') + decipher.final('utf8');
+}
 
 /**
  * Check if a token string is already encrypted
@@ -65,17 +79,12 @@ function decryptToken(text) {
       return trimmed;
     }
 
-    const [ivHex, authTagHex, encryptedHex] = parts;
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
+    try {
+      return decryptWith(SECRET_KEY, ...parts);
+    } catch (err) {
+      if (SECRET_KEY === LEGACY_KEY) throw err;
+      return decryptWith(LEGACY_KEY, ...parts);
+    }
   } catch (err) {
     console.error('⚠️ [CryptoUtils] Decryption failed:', err.message);
     // Graceful fallback if decryption fails
@@ -83,8 +92,30 @@ function decryptToken(text) {
   }
 }
 
+/**
+ * Re-encrypt a stored value that only the legacy key can open.
+ * @param {string} stored Stored 'enc:' payload
+ * @returns {string|null} New payload under the current key, or null if no change is needed
+ */
+function reencryptIfLegacy(stored) {
+  if (SECRET_KEY === LEGACY_KEY || !isEncrypted(stored)) return null;
+  const parts = stored.slice(PREFIX.length).split(':');
+  if (parts.length !== 3) return null;
+  try {
+    decryptWith(SECRET_KEY, ...parts);
+    return null;
+  } catch {
+    try {
+      return encryptToken(decryptWith(LEGACY_KEY, ...parts));
+    } catch {
+      return null;
+    }
+  }
+}
+
 module.exports = {
   encryptToken,
   decryptToken,
   isEncrypted,
+  reencryptIfLegacy,
 };

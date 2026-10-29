@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { newId, publicUrl } = require('../utils/publicLinks');
 const TestingSessionModel = require('../models/TestingSession');
 const CapturedBugModel = require('../models/CapturedBug');
 const BugModel = require('../models/Bug');
@@ -18,10 +19,6 @@ const MAX_REPORT_FIELD_LENGTH = 20000;
 const REPORT_FIELDS = ['title', 'severity', 'description', 'stepsToReproduce', 'expectedResult', 'actualResult'];
 const SEVERITIES = ['1 - Critical', '2 - High', '3 - Medium', '4 - Low'];
 
-function newId(prefix) {
-  return `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-}
-
 function issueConnectToken() {
   const token = crypto.randomBytes(32).toString('hex');
   return { token, tokenHash: hashToken(token), tokenExpiresAt: new Date(Date.now() + TOKEN_TTL_MS).toISOString() };
@@ -33,6 +30,11 @@ function azureConfig(user) {
 }
 
 function fail(res, status, error, extra = {}) {
+  if (status === 500) {
+    // Internal errors (DB, filesystem) are logged, not echoed to the client.
+    console.error('Testing session error:', error);
+    error = 'The server ran into a problem. Please try again in a moment.';
+  }
   return res.status(status).json({ success: false, error, ...extra });
 }
 
@@ -113,8 +115,8 @@ async function loadOwnedBug(req, res) {
 /** Bugs published to Azure before public links existed get their Bug history entry + link on first read. */
 async function ensurePublicLink(req, bug) {
   if (bug.azure_status !== 'created' || bug.public_link || !bug.report) return bug;
-  const historyBugId = `bug_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-  const publicLink = `${req.protocol}://${req.get('host')}/bugs/public/${historyBugId}`;
+  const historyBugId = newId('bug');
+  const publicLink = publicUrl(req, `/bugs/public/${historyBugId}`);
   await BugModel.save({
     id: historyBugId,
     userId: bug.user_id,
@@ -523,8 +525,8 @@ class TestingSessionController {
           attachment = { buffer, fileName: `screenshot-${bug.id}.${bug.screenshot_file.split('.').pop()}` };
         }
         // Same public link scheme as BugController so the bug also shows up in Bug history.
-        const historyBugId = `bug_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        const publicLink = `${req.protocol}://${req.get('host')}/bugs/public/${historyBugId}`;
+        const historyBugId = newId('bug');
+        const publicLink = publicUrl(req, `/bugs/public/${historyBugId}`);
         const evidence = `\n\nCaptured on: ${bug.page_url}\nPage title: ${bug.page_title || 'N/A'}\nCaptured at: ${bug.captured_at}\nTesting session: ${bug.session_id}\nPublic Bug Report Link: ${publicLink}`;
         // Everything below is sent to Azure DevOps (see createBugWorkItem in azureClient.js for the field mapping).
         const result = await azureClient.createBugWorkItem(
