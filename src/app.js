@@ -50,18 +50,31 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Serve static frontend files from 'client/dist' (built React app) or 'public'
-const clientDistDir = path.join(__dirname, '..', 'client', 'dist');
-const publicDir = path.join(__dirname, '..', 'public');
-const staticDir = fs.existsSync(clientDistDir) ? clientDistDir : publicDir;
-app.use(express.static(staticDir));
+// // Serve static frontend files from 'client/dist' (built React app) or 'public'
+// const clientDistDir = path.join(__dirname, '..', 'client', 'dist');
+// const publicDir = path.join(__dirname, '..', 'public');
+// const staticDir = fs.existsSync(clientDistDir) ? clientDistDir : publicDir;
+// app.use(express.static(staticDir));
 
-// SPA Routing Fallback
+// // SPA Routing Fallback
+// app.use((req, res) => {
+//   const indexFile = fs.existsSync(path.join(clientDistDir, 'index.html'))
+//     ? path.join(clientDistDir, 'index.html')
+//     : path.join(publicDir, 'index.html');
+//   res.sendFile(indexFile);
+// });
+
+// Clean React-only static serving:
+const clientDistDir = path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(clientDistDir)) {
+  app.use(express.static(clientDistDir));
+}
 app.use((req, res) => {
-  const indexFile = fs.existsSync(path.join(clientDistDir, 'index.html'))
-    ? path.join(clientDistDir, 'index.html')
-    : path.join(publicDir, 'index.html');
-  res.sendFile(indexFile);
+  const indexFile = path.join(clientDistDir, 'index.html');
+  if (fs.existsSync(indexFile)) {
+    return res.sendFile(indexFile);
+  }
+  res.status(404).send('Frontend not built. Please run "npm run build" in the client directory.');
 });
 
 module.exports = app;
